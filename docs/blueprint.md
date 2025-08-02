@@ -1,4 +1,4 @@
-# **App Name**: Samay Barta Lite
+# **App Name**: AjkerDhara
 
 ## Core Features:
 

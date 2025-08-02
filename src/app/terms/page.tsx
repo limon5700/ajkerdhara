@@ -41,7 +41,7 @@ export default function TermsPage() {
           <CardContent className="space-y-6 prose dark:prose-invert max-w-none">
             <div>
               <h3 className="font-semibold text-lg">{getUIText("termsSection1Title") || "1. Acceptance of Terms"}</h3>
-              <p>{getUIText("termsSection1Content") || "By accessing or using Samay Barta Lite (the \"Service\"), you agree to be bound by these Terms and Conditions. If you disagree with any part of the terms, then you may not access the Service."}</p>
+              <p>{getUIText("termsSection1Content") || "By accessing or using AjkerDhara (the \"Service\"), you agree to be bound by these Terms and Conditions. If you disagree with any part of the terms, then you may not access the Service."}</p>
             </div>
             <div>
               <h3 className="font-semibold text-lg">{getUIText("termsSection2Title") || "2. Use of Service"}</h3>

@@ -61,7 +61,7 @@ type ProcessedArticleFormData = CreateNewsArticleData;
 
 interface ArticleFormProps {
   article?: NewsArticle | null;
-  onSubmit: (data: ProcessedArticleFormData) => void;
+  onSubmit: (data: ArticleFormData) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
 }
@@ -149,7 +149,7 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         articleFacebookUrl: data.articleFacebookUrl || undefined,
         articleMoreLinksUrl: data.articleMoreLinksUrl || undefined,
     };
-    onSubmit(finalData);
+    onSubmit(data);
   };
 
   return (

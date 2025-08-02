@@ -22,36 +22,31 @@ import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAppContext } from "@/context/AppContext";
 
-const userFormSchemaBase = z.object({
+const userFormSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters.").max(50),
   email: z.string().email("Invalid email address.").optional().or(z.literal('')),
   roles: z.array(z.string()).default([]), // Array of role IDs
   isActive: z.boolean().default(true),
-});
-
-const passwordSchemaPart = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters."),
-  confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters.")
-}).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"], // path of error
-});
-
-const optionalPasswordSchemaPart = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters.").optional().or(z.literal('')),
-  confirmPassword: z.string().min(6, "Confirm password must be at least 6 characters.").optional().or(z.literal('')),
-}).refine(data => {
-    if (data.password && !data.confirmPassword) return false; // if password is set, confirmPassword must be set
-    if (!data.password && data.confirmPassword) return false; // if confirmPassword is set, password must be set
-    if (data.password && data.confirmPassword) return data.password === data.confirmPassword;
-    return true; // if both are empty, it's fine
+  password: z.string().optional(),
+  confirmPassword: z.string().optional(),
+}).refine((data) => {
+  // If editing user and password is empty, skip validation
+  if (!data.password && !data.confirmPassword) return true;
+  
+  // If password is provided, confirmPassword must match
+  if (data.password && data.confirmPassword) {
+    return data.password === data.confirmPassword;
+  }
+  
+  // If one is provided but not the other, it's invalid
+  return false;
 }, {
-  message: "Passwords do not match or confirm password is missing",
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
 
-export type UserFormData = z.infer<typeof userFormSchemaBase> & (z.infer<typeof passwordSchemaPart> | z.infer<typeof optionalPasswordSchemaPart>);
+export type UserFormData = z.infer<typeof userFormSchema>;
 
 interface UserFormProps {
   user?: User | null;
@@ -64,13 +59,11 @@ interface UserFormProps {
 export default function UserForm({ user, roles: availableRoles, onSubmit, onCancel, isSubmitting }: UserFormProps) {
   const { getUIText } = useAppContext();
   
-  const formSchema = user 
-    ? userFormSchemaBase.merge(optionalPasswordSchemaPart)
-    : userFormSchemaBase.merge(passwordSchemaPart);
+
 
 
   const form = useForm<UserFormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       username: user?.username || "",
       email: user?.email || "",

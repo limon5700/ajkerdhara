@@ -4,7 +4,7 @@
 import type { NewsArticle } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import { ResponsiveImage } from "@/components/ui/optimized-image";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
@@ -19,6 +19,9 @@ interface NewsCardProps {
 
 export default function NewsCard({ article }: NewsCardProps) {
   const { getUIText, isClient, language: currentLocale } = useAppContext();
+
+  // Debug: Log the imageUrl to the browser console
+  console.log('NewsCard imageUrl:', article.imageUrl);
 
   if (!isClient) {
     let formattedDateSsr = "N/A";
@@ -38,22 +41,18 @@ export default function NewsCard({ article }: NewsCardProps) {
     }
 
     return (
-      <Card className="flex flex-col h-full overflow-hidden shadow-lg rounded-lg">
-        {article.imageUrl && (
-          <div className="relative w-full aspect-video"> {/* Changed h-48 to aspect-video */}
-            <Image
-              src={article.imageUrl}
-              alt={article.title}
-              fill={true}
-              style={{objectFit:"cover"}}
-              data-ai-hint={article.dataAiHint || "news article"}
-            />
-          </div>
-        )}
+      <Card className="flex flex-col h-full overflow-hidden shadow-lg rounded-lg bg-white border border-gray-200">
+        <div className="relative w-full aspect-video"> {/* Changed h-48 to aspect-video */}
+          <ResponsiveImage
+            src={article.imageUrl || "/placeholder-image.svg"}
+            alt={article.title}
+            dataAiHint={article.dataAiHint || "news article"}
+          />
+        </div>
         <CardHeader>
-          <CardTitle className="text-xl leading-tight mb-1">{article.title}</CardTitle>
-           <div className="flex items-center text-xs text-muted-foreground space-x-2">
-            <Badge variant="secondary" className="text-xs">{article.category}</Badge>
+          <CardTitle className="text-xl leading-tight mb-1 text-gray-900">{article.title}</CardTitle>
+           <div className="flex items-center text-xs text-gray-500 space-x-2">
+            <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">{article.category}</Badge>
             <div className="flex items-center">
                 <CalendarDays className="mr-1 h-3 w-3" />
                 <span>{formattedDateSsr}</span>
@@ -61,10 +60,10 @@ export default function NewsCard({ article }: NewsCardProps) {
           </div>
         </CardHeader>
         <CardContent className="flex-grow">
-          <CardDescription className="text-sm text-foreground/80 line-clamp-3">{article.excerpt || ''}</CardDescription> {/* Added line-clamp-3 for consistency */}
+          <CardDescription className="text-sm text-gray-600 line-clamp-3">{article.excerpt || ''}</CardDescription> {/* Added line-clamp-3 for consistency */}
         </CardContent>
         <CardFooter>
-          <Button asChild variant="default" size="sm" className="w-full" disabled>
+          <Button asChild variant="default" size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled>
             <span className="flex items-center">
               Loading... <ArrowRight className="ml-2 h-4 w-4" />
             </span>
@@ -96,46 +95,37 @@ export default function NewsCard({ article }: NewsCardProps) {
   const seeMoreText = getUIText("seeMore");
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out rounded-lg">
-      {article.imageUrl && (
-        <div className="relative w-full aspect-video"> {/* Changed h-48 to aspect-video */}
-          <Image
-            src={article.imageUrl}
+    <Link href={`/article/${article.id}`} className="block">
+      <div className="flex flex-col h-full overflow-hidden bg-white border border-gray-200 hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+        <div className="relative w-full aspect-video">
+          <ResponsiveImage
+            src={article.imageUrl || "/placeholder-image.svg"}
             alt={displayTitle}
-            fill={true}
-            style={{objectFit:"cover"}}
-            data-ai-hint={article.dataAiHint || "news article"}
+            dataAiHint={article.dataAiHint || "news article"}
           />
         </div>
-      )}
-      <CardHeader>
-        <CardTitle className="text-xl leading-tight mb-1 line-clamp-2">{displayTitle}</CardTitle> {/* Added line-clamp-2 for title consistency */}
-        <div className="flex items-center text-xs text-muted-foreground space-x-2">
-          <Badge variant="secondary" className="text-xs">{article.category}</Badge>
-          <div className="flex items-center">
-            <CalendarDays className="mr-1 h-3 w-3" />
-            <span>{relativeDate}</span>
+        <div className="p-4 flex-grow">
+          <div className="flex items-center text-xs text-gray-500 space-x-2 mb-2">
+            <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 border-0">{article.category}</Badge>
+            <div className="flex items-center">
+              <CalendarDays className="mr-1 h-3 w-3" />
+              <span>{relativeDate}</span>
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <CardDescription className="text-sm text-foreground/80 line-clamp-3">{displayExcerpt}</CardDescription> {/* Added line-clamp-3 for consistency */}
-      </CardContent>
-      <CardFooter>
-        <Button
-          asChild
-          variant="default"
-          size="sm"
-          className="w-full transition-transform duration-200 hover:scale-105"
-          aria-label={`${seeMoreText} ${displayTitle}`}
-        >
-          <Link href={`/article/${article.id}`}>
+          <h3 className="text-lg font-bold leading-tight mb-2 text-black line-clamp-2 hover:text-yellow-600 transition-colors">{displayTitle}</h3>
+          <p className="text-sm text-gray-600 line-clamp-3 mb-4">{displayExcerpt}</p>
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-transform duration-200 hover:scale-105"
+            aria-label={`${seeMoreText} ${displayTitle}`}
+          >
             {seeMoreText}
             <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+          </Button>
+        </div>
+      </div>
+    </Link>
   );
 }
 

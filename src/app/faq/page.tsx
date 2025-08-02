@@ -41,8 +41,8 @@ export default function FAQPage() {
           </CardHeader>
           <CardContent className="space-y-6 prose dark:prose-invert max-w-none">
             <div>
-              <h3 className="font-semibold text-lg">{getUIText("faqQ1Title") || "Q1: What is Samay Barta Lite?"}</h3>
-              <p>{getUIText("faqA1Content") || "Samay Barta Lite is a concise news application that uses AI to provide you with quick summaries and translations of news articles."}</p>
+              <h3 className="font-semibold text-lg">{getUIText("faqQ1Title") || "Q1: What is AjkerDhara?"}</h3>
+<p>{getUIText("faqA1Content") || "AjkerDhara is a concise news application that uses AI to provide you with quick summaries and translations of news articles."}</p>
             </div>
             <div>
               <h3 className="font-semibold text-lg">{getUIText("faqQ2Title") || "Q2: How do I change the language?"}</h3>

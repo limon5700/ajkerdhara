@@ -59,7 +59,7 @@ export default function CategoryFilter({
     return (
       <div className="mb-8 flex flex-wrap gap-2 justify-center">
         {(["All", ...safeCategoriesForSsr]).map((category) => (
-          <Button key={category} variant="outline" disabled>
+          <Button key={category} variant="outline" disabled className="border-gray-300 text-gray-600 bg-white">
             {category} {/* Show raw category name for SSR placeholder */}
           </Button>
         ))}
@@ -69,7 +69,7 @@ export default function CategoryFilter({
 
 
   return (
-    <div className="mb-8 flex flex-wrap gap-2 justify-center">
+    <div className="mb-6 flex flex-wrap gap-3 justify-center">
       {displayCategories.map((category) => {
         const Icon = categoryIcons[category as Category] || List;
         const uiTextKey = categoryUiTextKeys[category as string] || category as string;
@@ -81,8 +81,10 @@ export default function CategoryFilter({
             variant={selectedCategory === category ? "default" : "outline"}
             onClick={() => onSelectCategory(category)}
             className={cn(
-              "transition-all duration-200 ease-in-out transform hover:scale-105",
-              selectedCategory === category && "shadow-lg"
+              "transition-all duration-200 ease-in-out transform hover:scale-105 font-bold",
+              selectedCategory === category 
+                ? "bg-yellow-500 hover:bg-yellow-600 text-black shadow-lg" 
+                : "border-gray-300 text-black bg-white hover:bg-gray-50 hover:border-yellow-300"
             )}
             aria-pressed={selectedCategory === category}
           >

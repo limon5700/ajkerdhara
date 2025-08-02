@@ -22,12 +22,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import ArticleForm, { type ArticleFormData } from "@/components/admin/ArticleForm";
-import type { NewsArticle, CreateNewsArticleData, DashboardAnalytics, UserActivity } from "@/lib/types";
+import type { NewsArticle, DashboardAnalytics, UserActivity } from "@/lib/types";
 import {
   getAllNewsArticles,
-  addNewsArticle,
-  updateNewsArticle,
   deleteNewsArticle,
   getDashboardAnalytics,
   addActivityLogEntry,
@@ -37,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import AnalyticsCard from "@/components/admin/AnalyticsCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { getSession } from "@/app/admin/auth/actions";
+import Link from "next/link";
 
 const DHAKA_TIMEZONE = 'Asia/Dhaka';
 
@@ -51,8 +49,7 @@ export default function DashboardPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   
-  const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
-  const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
+
   
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [articleToDelete, setArticleToDelete] = useState<NewsArticle | null>(null);
@@ -149,15 +146,7 @@ export default function DashboardPage() {
   }, [fetchDashboardData, fetchArticles]);
 
 
-  const handleAddArticle = () => {
-    setEditingArticle(null);
-    setIsAddEditDialogOpen(true);
-  };
 
-  const handleEditArticle = (article: NewsArticle) => {
-    setEditingArticle(article);
-    setIsAddEditDialogOpen(true);
-  };
 
   const handleDeleteArticle = (article: NewsArticle) => {
     setArticleToDelete(article);
@@ -195,96 +184,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleFormSubmit = async (data: ArticleFormData) => {
-    setIsSubmitting(true);
-    try {
-      const session = await getSession(); // Get current user for authorId and activity log
-      const authorIdToSave = session?.userId || 'SUPERADMIN_ENV'; // Default to superadmin if no specific user
-      const authorUsernameToSave = session?.username || 'SuperAdmin';
 
-      if (editingArticle) {
-         const updateData: Partial<Omit<NewsArticle, 'id' | 'publishedDate'>> = { 
-            title: data.title,
-            content: data.content,
-            excerpt: data.excerpt,
-            category: data.category,
-            imageUrl: data.imageUrl,
-            dataAiHint: data.dataAiHint,
-            authorId: authorIdToSave,
-            inlineAdSnippets: data.inlineAdSnippetsInput?.split('\n\n').map(s => s.trim()).filter(s => s !== '') || [],
-            metaTitle: data.metaTitle,
-            metaDescription: data.metaDescription,
-            metaKeywords: data.metaKeywords?.split(',').map(k => k.trim()).filter(k => k),
-            ogTitle: data.ogTitle,
-            ogDescription: data.ogDescription,
-            ogImage: data.ogImage,
-            canonicalUrl: data.canonicalUrl,
-            articleYoutubeUrl: data.articleYoutubeUrl,
-            articleFacebookUrl: data.articleFacebookUrl,
-            articleMoreLinksUrl: data.articleMoreLinksUrl,
-         };
-        const result = await updateNewsArticle(editingArticle.id, updateData);
-        if (result) {
-          toast({ title: "Success", description: "Article updated successfully." });
-           await addActivityLogEntry({ 
-              userId: authorIdToSave, 
-              username: authorUsernameToSave, 
-              action: 'article_updated', 
-              targetType: 'article', 
-              targetId: editingArticle.id,
-              details: { updatedTitle: result.title, fieldsUpdated: Object.keys(updateData) }
-          });
-        } else {
-           toast({ title: "Error", description: "Failed to update article.", variant: "destructive" });
-        }
-      } else {
-         const createData: CreateNewsArticleData = {
-            title: data.title,
-            content: data.content,
-            excerpt: data.excerpt,
-            category: data.category,
-            imageUrl: data.imageUrl,
-            dataAiHint: data.dataAiHint,
-            authorId: authorIdToSave,
-            inlineAdSnippets: data.inlineAdSnippetsInput?.split('\n\n').map(s => s.trim()).filter(s => s !== '') || [],
-            metaTitle: data.metaTitle,
-            metaDescription: data.metaDescription,
-            metaKeywords: data.metaKeywords?.split(',').map(k => k.trim()).filter(k => k),
-            ogTitle: data.ogTitle,
-            ogDescription: data.ogDescription,
-            ogImage: data.ogImage,
-            canonicalUrl: data.canonicalUrl,
-            articleYoutubeUrl: data.articleYoutubeUrl,
-            articleFacebookUrl: data.articleFacebookUrl,
-            articleMoreLinksUrl: data.articleMoreLinksUrl,
-         };
-        const result = await addNewsArticle(createData);
-         if (result) {
-            toast({ title: "Success", description: "Article added successfully." });
-            await addActivityLogEntry({ 
-              userId: authorIdToSave, 
-              username: authorUsernameToSave, 
-              action: 'article_created', 
-              targetType: 'article', 
-              targetId: result.id,
-              details: { newTitle: result.title }
-            });
-        } else {
-            toast({ title: "Error", description: "Failed to add article.", variant: "destructive" });
-        }
-      }
-      await Promise.all([fetchArticles(), fetchDashboardData()]);
-      setIsAddEditDialogOpen(false);
-      setEditingArticle(null);
-    } catch (error) {
-       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-       console.error("Error saving article:", error);
-       toast({ title: "Error", description: `An error occurred while saving the article: ${errorMessage}`, variant: "destructive" });
-       setPageError(`Saving article failed: ${errorMessage}. Check server logs.`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
   
   const DashboardContent = () => {
     if (pageError || isLoading || isAnalyticsLoading) {
@@ -307,69 +207,18 @@ export default function DashboardPage() {
     }
     return (
       <div className="container mx-auto py-8">
-        <Card className="shadow-lg rounded-xl mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-              <BarChartBig /> Site Overview
-            </CardTitle>
-            <CardDescription>A quick look at your site's key metrics.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {analytics ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <AnalyticsCard title="Total Articles" value={analytics.totalArticles.toString()} icon={FileText} />
-                <AnalyticsCard title="Articles Today" value={analytics.articlesToday.toString()} icon={CalendarClock} />
-                <AnalyticsCard title="Total Users" value={analytics.totalUsers.toString()} icon={Users} />
-                <AnalyticsCard title="Active Gadgets" value={analytics.activeGadgets.toString()} icon={Zap} />
-                
-                <AnalyticsCard title="Visitors Today" value={analytics.visitorStats?.today?.toString() ?? "N/A"} icon={Eye} description="Requires tracking setup" />
-                <AnalyticsCard title="Active Visitors Now" value={analytics.visitorStats?.activeNow?.toString() ?? "N/A"} icon={Activity} description="Requires tracking setup" />
-                <AnalyticsCard title="Visitors This Week" value={analytics.visitorStats?.thisWeek?.toString() ?? "N/A"} icon={Eye} description="Requires tracking setup" />
-                <AnalyticsCard title="Visitors This Month" value={analytics.visitorStats?.thisMonth?.toString() ?? "N/A"} icon={Eye} description="Requires tracking setup" />
-              </div>
-            ) : (
-               <div className="text-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-            )}
-          </CardContent>
-        </Card>
-        
-        {/* Top User Activity section - can be re-enabled when getTopUserPostActivity is ready */}
-        {/* 
-        <Card className="shadow-lg rounded-xl mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold text-primary">Top User Activity</CardTitle>
-            <CardDescription>Users with the most article posts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {topUsersActivity.length > 0 ? (
-              <Table>
-                <TableHeader><TableRow><TableHead>Username</TableHead><TableHead>Posts</TableHead><TableHead>Last Post</TableHead></TableRow></TableHeader>
-                <TableBody>
-                  {topUsersActivity.map(user => (
-                    <TableRow key={user.userId}>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell>{user.postCount}</TableCell>
-                      <TableCell>{user.lastPostDate ? formatInTimeZone(new Date(user.lastPostDate), DHAKA_TIMEZONE, "MMM d, yyyy") : 'N/A'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">No user activity data available.</p>
-            )}
-          </CardContent>
-        </Card>
-        */}
-
+        {/* Site Overview section removed and will be moved to a new Overview page */}
         <Card className="shadow-lg rounded-xl">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-2xl font-bold text-primary">Manage News Articles</CardTitle>
               <CardDescription>Add, edit, or delete news articles.</CardDescription>
             </div>
-            <Button onClick={handleAddArticle} size="sm" className="ml-auto gap-1">
-              <PlusCircle className="h-4 w-4" />
-              Add New Article
+            <Button asChild size="sm" className="ml-auto gap-1">
+              <Link href="/admin/articles/add">
+                <PlusCircle className="h-4 w-4" />
+                Add New Article
+              </Link>
             </Button>
           </CardHeader>
           <CardContent>
@@ -392,13 +241,15 @@ export default function DashboardPage() {
                       <TableCell>{article.category}</TableCell>
                       <TableCell>{article.publishedDate ? formatInTimeZone(new Date(article.publishedDate), DHAKA_TIMEZONE, "MMM d, yyyy, h:mm a zzz") : 'N/A'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditArticle(article)} className="mr-2 hover:text-primary">
-                          <Edit className="h-4 w-4" />
-                          <span className="sr-only">Edit</span>
+                        <Button variant="ghost" size="icon" asChild className="mr-2 hover:text-primary">
+                          <Link href={`/admin/articles/edit/${article.id}`}>
+                            <Edit className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
+                          </Link>
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteArticle(article)} className="hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
-                           <span className="sr-only">Delete</span>
+                          <span className="sr-only">Delete</span>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -409,34 +260,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Dialog open={isAddEditDialogOpen} onOpenChange={(isOpen) => {
-            if (!isOpen) {
-                setIsAddEditDialogOpen(false);
-                setEditingArticle(null);
-            } else {
-                setIsAddEditDialogOpen(true);
-            }
-        }}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingArticle ? "Edit Article" : "Add New Article"}</DialogTitle>
-              <DialogDescription>
-                {editingArticle ? "Modify the details of the existing article." : "Fill in the details to create a new news article."}
-              </DialogDescription>
-            </DialogHeader>
-            {isAddEditDialogOpen && (
-              <ArticleForm
-                article={editingArticle}
-                onSubmit={handleFormSubmit}
-                onCancel={() => {
-                    setIsAddEditDialogOpen(false);
-                    setEditingArticle(null);
-                }}
-                isSubmitting={isSubmitting}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Remove the Dialog for add/edit article */}
 
         <Dialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => {
             if (!isOpen) {

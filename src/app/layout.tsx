@@ -5,13 +5,14 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProvider } from '@/context/AppContext';
-import { getSeoSettings } from '@/lib/data'; 
+import { getSeoSettings } from '@/lib/data';
+import { PerformanceMonitor } from '@/components/ui/performance-monitor'; 
 
 export async function generateMetadata(): Promise<Metadata> {
   const seoSettings = await getSeoSettings();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002'; 
 
-  const title = seoSettings?.siteTitle || 'সময় বার্তা লাইট | Samay Barta Lite';
+  const title = seoSettings?.siteTitle || 'আজকের ধারা | AjkerDhara';
   const description = seoSettings?.metaDescription || 'Your concise news source, powered by AI.';
   
   const metadataBase = siteUrl ? new URL(siteUrl) : undefined;
@@ -29,9 +30,9 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: description,
     keywords: seoSettings?.metaKeywords || ['news', 'bangla news', 'ai news', 'latest news', 'technology', 'sports'],
-    authors: [{ name: 'Samay Barta Lite Team', url: siteUrl }],
-    creator: 'Samay Barta Lite Team',
-    publisher: 'Samay Barta Lite',
+          authors: [{ name: 'AjkerDhara Team', url: siteUrl }],
+      creator: 'AjkerDhara Team',
+      publisher: 'AjkerDhara',
     alternates: {
       canonical: '/',
     },
@@ -54,7 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
         },
       ],
       locale: seoSettings?.ogLocale || 'bn_BD',
-      type: seoSettings?.ogType || 'website',
+      type: (seoSettings?.ogType as "website" | "article" | "book" | "profile" | "music.song" | "music.album" | "music.playlist" | "music.radio_station" | "video.movie" | "video.episode" | "video.tv_show" | "video.other") || 'website',
     },
     twitter: {
       card: (seoSettings?.twitterCard as "summary" | "summary_large_image" | "app" | "player") || 'summary_large_image',
@@ -97,10 +98,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="bn" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
-      <body className={`antialiased font-sans bg-background text-foreground`}>
+      <body className={`antialiased font-sans bg-background text-foreground`} suppressHydrationWarning>
         <AppProvider>
           {children}
           <Toaster />
+          <PerformanceMonitor />
         </AppProvider>
       </body>
     </html>

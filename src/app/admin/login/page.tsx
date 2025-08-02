@@ -115,7 +115,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">Samay Barta Lite - Admin</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary">AjkerDhara - Admin</CardTitle>
           <CardDescription>Please enter your credentials to access the admin panel.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -187,7 +187,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
         <CardFooter className="text-center text-xs text-muted-foreground">
-           © {new Date().getFullYear()} Samay Barta Lite
+           © {new Date().getFullYear()} AjkerDhara
         </CardFooter>
       </Card>
     </div>

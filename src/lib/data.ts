@@ -115,7 +115,15 @@ function mapMongoDocumentToActivityLog(doc: any): ActivityLogEntry | null {
 
 export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle[]> {
   try {
-    const { db } = await connectToDatabase();
+    const connection = await connectToDatabase();
+    
+    // If we're in development mode and don't have a real connection, return sample data
+    if (!connection.db || Object.keys(connection.db).length === 0) {
+      console.log("Using sample data for development mode");
+      return initialSampleNewsArticles;
+    }
+    
+    const { db } = connection;
     const articlesCollection = db.collection('articles');
 
     const query: any = {};
@@ -154,6 +162,13 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
     return articlesArray.map(mapMongoDocumentToNewsArticle);
   } catch (error) {
     console.error("Error fetching all news articles:", error);
+    
+    // In development mode, return sample data instead of empty array
+    if (process.env.NODE_ENV === 'development') {
+      console.warn("Returning sample data due to database connection failure");
+      return initialSampleNewsArticles;
+    }
+    
     return [];
   }
 }
@@ -293,7 +308,15 @@ export async function getAllGadgets(): Promise<Gadget[]> {
 
 export async function getActiveGadgetsBySection(section: LayoutSection): Promise<Gadget[]> {
   try {
-    const { db } = await connectToDatabase();
+    const connection = await connectToDatabase();
+    
+    // If we're in development mode and don't have a real connection, return empty array
+    if (!connection.db || Object.keys(connection.db).length === 0) {
+      console.log("No gadgets available in development mode");
+      return [];
+    }
+    
+    const { db } = connection;
     let query: any = {
         $or: [
             { section: section },
@@ -371,8 +394,15 @@ const GLOBAL_SEO_SETTINGS_DOC_ID = "global_seo_settings_doc";
 
 export async function getSeoSettings(): Promise<SeoSettings | null> {
     try {
-        const { db } = await connectToDatabase();
-        const settingsDoc = await db.collection('seo_settings').findOne({ _id: GLOBAL_SEO_SETTINGS_DOC_ID });
+        const connection = await connectToDatabase();
+        
+        // Ensure we have a real database connection
+        if (!connection.db) {
+            throw new Error("No database connection available");
+        }
+        
+        const { db } = connection;
+        const settingsDoc = await db.collection('seo_settings').findOne({ _id: GLOBAL_SEO_SETTINGS_DOC_ID as any });
         if (settingsDoc) {
              return {
                 id: settingsDoc._id.toString(),
@@ -394,11 +424,11 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
         }
         return { // Default values if no settings are found
             id: GLOBAL_SEO_SETTINGS_DOC_ID,
-            siteTitle: "Samay Barta Lite",
+            siteTitle: "AjkerDhara",
             metaDescription: "Your concise news source, powered by AI.",
             metaKeywords: ["news", "bangla news", "ai news", "latest news"],
             faviconUrl: "/favicon.ico",
-            ogSiteName: "Samay Barta Lite",
+            ogSiteName: "AjkerDhara",
             ogLocale: "bn_BD",
             ogType: "website",
             twitterCard: "summary_large_image",
@@ -409,9 +439,11 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
         };
     } catch (error) {
         console.error("Error fetching SEO settings:", error);
-        return { // Fallback default values on error
+        
+        // Return default values on error - this prevents the app from crashing
+        return { 
             id: GLOBAL_SEO_SETTINGS_DOC_ID,
-            siteTitle: "Samay Barta Lite - Default",
+            siteTitle: "AjkerDhara - Default",
             metaDescription: "Default description.",
             metaKeywords: [],
             faviconUrl: "/favicon.ico",
@@ -425,7 +457,14 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
 
 export async function updateSeoSettings(settingsData: CreateSeoSettingsData): Promise<SeoSettings | null> {
     try {
-        const { db } = await connectToDatabase();
+        const connection = await connectToDatabase();
+        
+        // Ensure we have a real database connection
+        if (!connection.db) {
+            throw new Error("No database connection available");
+        }
+        
+        const { db } = connection;
         const updateDoc = {
             ...settingsData,
             metaKeywords: Array.isArray(settingsData.metaKeywords) ? settingsData.metaKeywords : (settingsData.metaKeywords || '').split(',').map(k => k.trim()).filter(k => k),
@@ -435,7 +474,7 @@ export async function updateSeoSettings(settingsData: CreateSeoSettingsData): Pr
             footerMoreLinksUrl: settingsData.footerMoreLinksUrl || undefined,
         };
         const result = await db.collection('seo_settings').findOneAndUpdate(
-            { _id: GLOBAL_SEO_SETTINGS_DOC_ID },
+            { _id: GLOBAL_SEO_SETTINGS_DOC_ID as any },
             { $set: updateDoc },
             { upsert: true, returnDocument: 'after' }
         );
