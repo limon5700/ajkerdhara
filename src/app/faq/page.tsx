@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter } from "next/navigation"; // Using next/navigation for App Router
 
 export default function FAQPage() {
-  const { getUIText, isClient } = useAppContext();
+  const { isClient } = useAppContext();
   const router = useRouter();
 
 
@@ -37,24 +37,24 @@ export default function FAQPage() {
       <main className="flex-grow container mx-auto px-4 py-8">
         <Card className="shadow-lg rounded-xl">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-primary">{getUIText("faqTitle")}</CardTitle>
+            <CardTitle className="text-2xl font-bold text-primary">Frequently Asked Questions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 prose dark:prose-invert max-w-none">
             <div>
-              <h3 className="font-semibold text-lg">{getUIText("faqQ1Title") || "Q1: What is AjkerDhara?"}</h3>
-<p>{getUIText("faqA1Content") || "AjkerDhara is a concise news application that uses AI to provide you with quick summaries and translations of news articles."}</p>
+              <h3 className="font-semibold text-lg">Q1: What is Clypio?</h3>
+<p>Clypio is your source for global stories in a snap - a news application that uses AI to provide you with quick summaries and translations of news articles from around the world.</p>
             </div>
             <div>
-              <h3 className="font-semibold text-lg">{getUIText("faqQ2Title") || "Q2: How do I change the language?"}</h3>
-              <p>{getUIText("faqA2Content") || "You can change the language using the language switcher option available in the three-dot menu in the header."}</p>
+              <h3 className="font-semibold text-lg">Q2: How do I search for articles?</h3>
+              <p>You can search for articles using the search bar in the header. Simply type your keywords and press enter.</p>
             </div>
             <div>
-              <h3 className="font-semibold text-lg">{getUIText("faqQ3Title") || "Q3: How does the dark mode work?"}</h3>
-              <p>{getUIText("faqA3Content") || "Dark mode can be toggled from the theme switcher in the three-dot menu. It changes the application's appearance to a darker color scheme, which can be easier on the eyes in low-light environments."}</p>
+              <h3 className="font-semibold text-lg">Q3: How do I filter articles by category?</h3>
+              <p>Use the category buttons below the header to filter articles by Technology, Sports, Business, World, or Entertainment. Click "All" to see all articles.</p>
             </div>
              <div>
-              <h3 className="font-semibold text-lg">{getUIText("faqQ4Title") || "Q4: Is the content translated by AI?"}</h3>
-              <p>{getUIText("faqA4Content") || "Yes, the article translation feature uses Generative AI to translate content into your selected language."}</p>
+              <h3 className="font-semibold text-lg">Q4: How often is the content updated?</h3>
+              <p>Our content is updated regularly throughout the day to bring you the latest global stories as they happen.</p>
             </div>
           </CardContent>
         </Card>

@@ -3,7 +3,7 @@
 
 import type { NewsArticle, Gadget, CreateGadgetData, LayoutSection, Category, CreateNewsArticleData, SeoSettings, CreateSeoSettingsData, DashboardAnalytics, User, Role, Permission, CreateUserData, CreateRoleData, UpdateUserData, CreateActivityLogData, ActivityLogEntry, UserActivity } from './types';
 import { connectToDatabase, ObjectId } from './mongodb';
-import { initialSampleNewsArticles, availablePermissions } from './constants';
+import { availablePermissions } from './constants';
 import bcrypt from 'bcryptjs';
 
 // Helper to map MongoDB document to NewsArticle type
@@ -20,6 +20,9 @@ function mapMongoDocumentToNewsArticle(doc: any): NewsArticle {
     dataAiHint: doc.dataAiHint,
     inlineAdSnippets: doc.inlineAdSnippets || [],
     authorId: doc.authorId,
+    displayPlacements: doc.displayPlacements || [], // Include displayPlacements
+    detailsPageCategories: doc.detailsPageCategories || [], // Include category filters
+    detailsPageSpecificPosts: doc.detailsPageSpecificPosts || [], // Include specific post filters
     metaTitle: doc.metaTitle,
     metaDescription: doc.metaDescription,
     metaKeywords: doc.metaKeywords || [],
@@ -117,10 +120,9 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
   try {
     const connection = await connectToDatabase();
     
-    // If we're in development mode and don't have a real connection, return sample data
+    // Ensure we have a real database connection, otherwise throw error
     if (!connection.db || Object.keys(connection.db).length === 0) {
-      console.log("Using sample data for development mode");
-      return initialSampleNewsArticles;
+      throw new Error("Database connection not available.");
     }
     
     const { db } = connection;
@@ -131,45 +133,50 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
         query.authorId = authorId;
     }
 
-    const count = await articlesCollection.countDocuments(); // Count all, then seed if empty
-    if (count === 0 && initialSampleNewsArticles.length > 0) {
-        console.log("Seeding initial news articles...");
-        const articlesToSeed = initialSampleNewsArticles.map(article => {
-            const { id, ...restOfArticle } = article; // Exclude frontend 'id'
-            return {
-                ...restOfArticle,
-                publishedDate: new Date(article.publishedDate),
-                inlineAdSnippets: article.inlineAdSnippets || [],
-                metaTitle: article.metaTitle || '',
-                metaDescription: article.metaDescription || '',
-                metaKeywords: article.metaKeywords || [],
-                ogTitle: article.ogTitle || '',
-                ogDescription: article.ogDescription || '',
-                ogImage: article.ogImage || '',
-                canonicalUrl: article.canonicalUrl || '',
-                articleYoutubeUrl: article.articleYoutubeUrl || '',
-                articleFacebookUrl: article.articleFacebookUrl || '',
-                articleMoreLinksUrl: article.articleMoreLinksUrl || '',
-                _id: new ObjectId(),
-            };
-        });
-        await articlesCollection.insertMany(articlesToSeed);
-        console.log(`${articlesToSeed.length} articles seeded.`);
-    }
+    // Removed seeding logic to ensure no mock data is ever inserted
+    // const count = await articlesCollection.countDocuments();
+    // if (count === 0 && initialSampleNewsArticles.length > 0) {
+    //     console.log("Seeding initial news articles...");
+    //     const articlesToSeed = initialSampleNewsArticles.map(article => {
+    //         const { id, ...restOfArticle } = article; // Exclude frontend 'id'
+    //         return {
+    //             ...restOfArticle,
+    //             publishedDate: new Date(article.publishedDate),
+    //             inlineAdSnippets: article.inlineAdSnippets || [],
+    //             metaTitle: article.metaTitle || '',
+    //             metaDescription: article.metaDescription || '',
+    //             metaKeywords: article.metaKeywords || [],
+    //             ogTitle: article.ogTitle || '',
+    //             ogDescription: article.ogDescription || '',
+    //             ogImage: article.ogImage || '',
+    //             canonicalUrl: article.canonicalUrl || '',
+    //             articleYoutubeUrl: article.articleYoutubeUrl || '',
+    //             articleFacebookUrl: article.articleFacebookUrl || '',
+    //             articleMoreLinksUrl: article.articleMoreLinksUrl || '',
+    //             _id: new ObjectId(),
+    //         };
+    //     });
+    //     await articlesCollection.insertMany(articlesToSeed);
+    //     console.log(`${articlesToSeed.length} articles seeded.`);
+    // }
 
-    const articlesCursor = articlesCollection.find(query).sort({ publishedDate: -1 });
+    const articlesCursor = articlesCollection.find(query, {
+      projection: {
+        _id: 1,
+        title: 1,
+        excerpt: 1,
+        category: 1,
+        publishedDate: 1,
+        imageUrl: 1,
+        dataAiHint: 1,
+        displayPlacements: 1, // Include displayPlacements in projection
+      },
+    }).sort({ publishedDate: -1 });
     const articlesArray = await articlesCursor.toArray();
     return articlesArray.map(mapMongoDocumentToNewsArticle);
   } catch (error) {
     console.error("Error fetching all news articles:", error);
-    
-    // In development mode, return sample data instead of empty array
-    if (process.env.NODE_ENV === 'development') {
-      console.warn("Returning sample data due to database connection failure");
-      return initialSampleNewsArticles;
-    }
-    
-    return [];
+    return []; // Return empty array on error, no sample data fallback
   }
 }
 
@@ -184,8 +191,12 @@ export async function addNewsArticle(articleData: CreateNewsArticleData): Promis
       articleYoutubeUrl: articleData.articleYoutubeUrl || undefined,
       articleFacebookUrl: articleData.articleFacebookUrl || undefined,
       articleMoreLinksUrl: articleData.articleMoreLinksUrl || undefined,
+      displayPlacements: articleData.displayPlacements || [], // Include displayPlacements
+      detailsPageCategories: articleData.detailsPageCategories || [], // Include category filters
+      detailsPageSpecificPosts: articleData.detailsPageSpecificPosts || [], // Include specific post filters
       _id: new ObjectId(),
     };
+    console.log('Debug (data.ts): addNewsArticle - newArticleDocument before insert:', newArticleDocument);
     const result = await db.collection('articles').insertOne(newArticleDocument);
 
     if (result.acknowledged && newArticleDocument._id) {
@@ -217,13 +228,17 @@ export async function updateNewsArticle(id: string, updates: Partial<Omit<NewsAr
     } else if (!Array.isArray(updateDoc.inlineAdSnippets)) {
         updateDoc.inlineAdSnippets = [];
     }
-    if (updates.metaKeywords && !Array.isArray(updates.metaKeywords)) {
-        updateDoc.metaKeywords = (updates.metaKeywords as unknown as string).split(',').map(k => k.trim()).filter(k => k);
+    if (updates.metaKeywords !== undefined && !Array.isArray(updates.metaKeywords)) {
+        updateDoc.metaKeywords = String(updates.metaKeywords || '').split(',').map((k: string) => k.trim()).filter((k: string) => k);
     }
     if (updates.articleYoutubeUrl !== undefined) updateDoc.articleYoutubeUrl = updates.articleYoutubeUrl;
     if (updates.articleFacebookUrl !== undefined) updateDoc.articleFacebookUrl = updates.articleFacebookUrl;
     if (updates.articleMoreLinksUrl !== undefined) updateDoc.articleMoreLinksUrl = updates.articleMoreLinksUrl;
+    if (updates.displayPlacements !== undefined) updateDoc.displayPlacements = updates.displayPlacements; // Include displayPlacements
+    if (updates.detailsPageCategories !== undefined) updateDoc.detailsPageCategories = updates.detailsPageCategories; // Include category filters
+    if (updates.detailsPageSpecificPosts !== undefined) updateDoc.detailsPageSpecificPosts = updates.detailsPageSpecificPosts; // Include specific post filters
 
+    console.log('Debug (data.ts): updateNewsArticle - updateDoc before update:', updateDoc);
     const result = await db.collection('articles').findOneAndUpdate(
       { _id: objectId },
       { $set: updateDoc },
@@ -260,7 +275,33 @@ export async function getArticleById(id: string): Promise<NewsArticle | null> {
   try {
     const { db } = await connectToDatabase();
     const objectId = new ObjectId(id);
-    const articleDoc = await db.collection('articles').findOne({ _id: objectId });
+    const articleDoc = await db.collection('articles').findOne({ _id: objectId }, {
+      projection: {
+        _id: 1,
+        title: 1,
+        content: 1,
+        excerpt: 1,
+        category: 1,
+        publishedDate: 1,
+        imageUrl: 1,
+        dataAiHint: 1,
+        inlineAdSnippets: 1,
+        authorId: 1,
+        metaTitle: 1,
+        metaDescription: 1,
+        metaKeywords: 1,
+        ogTitle: 1,
+        ogDescription: 1,
+        ogImage: 1,
+        canonicalUrl: 1,
+        articleYoutubeUrl: 1,
+        articleFacebookUrl: 1,
+        articleMoreLinksUrl: 1,
+        displayPlacements: 1, // Include displayPlacements in projection
+        detailsPageCategories: 1, // Include category filters in projection
+        detailsPageSpecificPosts: 1, // Include specific post filters in projection
+      },
+    });
     return articleDoc ? mapMongoDocumentToNewsArticle(articleDoc) : null;
   } catch (error) {
     console.error("Error fetching article by ID:", error);
@@ -280,7 +321,6 @@ export async function addGadget(gadgetData: CreateGadgetData): Promise<Gadget | 
       createdAt: new Date(),
       _id: new ObjectId(),
     };
-
     const result = await db.collection('advertisements').insertOne(newGadgetDocument);
      if (result.acknowledged && newGadgetDocument._id) {
       const insertedDoc = await db.collection('advertisements').findOne({ _id: newGadgetDocument._id });
@@ -310,10 +350,9 @@ export async function getActiveGadgetsBySection(section: LayoutSection): Promise
   try {
     const connection = await connectToDatabase();
     
-    // If we're in development mode and don't have a real connection, return empty array
+    // Ensure we have a real database connection, otherwise throw error
     if (!connection.db || Object.keys(connection.db).length === 0) {
-      console.log("No gadgets available in development mode");
-      return [];
+      throw new Error("Database connection not available.");
     }
     
     const { db } = connection;
@@ -325,7 +364,16 @@ export async function getActiveGadgetsBySection(section: LayoutSection): Promise
         isActive: true
     };
 
-    const gadgetsCursor = db.collection('advertisements').find(query).sort({ order: 1, createdAt: -1 });
+    const gadgetsCursor = db.collection('advertisements').find(query, {
+      projection: {
+        _id: 1,
+        section: 1,
+        title: 1,
+        content: 1,
+        isActive: 1,
+        order: 1,
+      },
+    }).sort({ order: 1, createdAt: -1 });
     const gadgetsArray = await gadgetsCursor.toArray();
     return gadgetsArray.map(mapMongoDocumentToGadget);
 
@@ -396,13 +444,31 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
     try {
         const connection = await connectToDatabase();
         
-        // Ensure we have a real database connection
+        // Ensure we have a real database connection, otherwise throw error
         if (!connection.db) {
             throw new Error("No database connection available");
         }
         
         const { db } = connection;
-        const settingsDoc = await db.collection('seo_settings').findOne({ _id: GLOBAL_SEO_SETTINGS_DOC_ID as any });
+        const settingsDoc = await db.collection('seo_settings').findOne({ _id: GLOBAL_SEO_SETTINGS_DOC_ID as any }, {
+          projection: {
+            _id: 1,
+            siteTitle: 1,
+            metaDescription: 1,
+            metaKeywords: 1,
+            faviconUrl: 1,
+            ogSiteName: 1,
+            ogLocale: 1,
+            ogType: 1,
+            twitterCard: 1,
+            twitterSite: 1,
+            twitterCreator: 1,
+            updatedAt: 1,
+            footerYoutubeUrl: 1,
+            footerFacebookUrl: 1,
+            footerMoreLinksUrl: 1,
+          },
+        });
         if (settingsDoc) {
              return {
                 id: settingsDoc._id.toString(),
@@ -422,36 +488,10 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
                 footerMoreLinksUrl: settingsDoc.footerMoreLinksUrl,
             };
         }
-        return { // Default values if no settings are found
-            id: GLOBAL_SEO_SETTINGS_DOC_ID,
-            siteTitle: "AjkerDhara",
-            metaDescription: "Your concise news source, powered by AI.",
-            metaKeywords: ["news", "bangla news", "ai news", "latest news"],
-            faviconUrl: "/favicon.ico",
-            ogSiteName: "AjkerDhara",
-            ogLocale: "bn_BD",
-            ogType: "website",
-            twitterCard: "summary_large_image",
-            updatedAt: new Date().toISOString(),
-            footerYoutubeUrl: "https://youtube.com",
-            footerFacebookUrl: "https://facebook.com",
-            footerMoreLinksUrl: "#",
-        };
+        return null; // Return null if no settings found
     } catch (error) {
         console.error("Error fetching SEO settings:", error);
-        
-        // Return default values on error - this prevents the app from crashing
-        return { 
-            id: GLOBAL_SEO_SETTINGS_DOC_ID,
-            siteTitle: "AjkerDhara - Default",
-            metaDescription: "Default description.",
-            metaKeywords: [],
-            faviconUrl: "/favicon.ico",
-            updatedAt: new Date().toISOString(),
-            footerYoutubeUrl: "https://youtube.com",
-            footerFacebookUrl: "https://facebook.com",
-            footerMoreLinksUrl: "#",
-        };
+        return null;
     }
 }
 
@@ -776,13 +816,9 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
     const { db } = await connectToDatabase();
     const totalUsers = await db.collection('users').countDocuments();
 
-    // Placeholder visitor stats. A real system would require a separate tracking mechanism.
-    const visitorStats = {
-      today: 123,         // Sample data
-      activeNow: 17,      // Sample data
-      thisWeek: 876,      // Sample data
-      thisMonth: 3450,    // Sample data
-      lastMonth: 4120,    // Sample data
+    // Removed placeholder visitor stats.
+    const visitorStats = { 
+      today: 0, activeNow: 0, thisWeek: 0, thisMonth: 0, lastMonth: 0 
     };
 
     return {
@@ -791,18 +827,15 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalytics> {
       totalUsers,
       activeGadgets,
       visitorStats,
-      // userPostActivity: Array.isArray(userPostActivity) ? userPostActivity : [], // Keep commented until fully implemented
     };
   } catch (error) {
     console.error("Error fetching dashboard analytics:", error);
-    // Return default/empty values on error
     return {
       totalArticles: 0,
       articlesToday: 0,
       totalUsers: 0,
       activeGadgets: 0,
       visitorStats: { today: 0, activeNow: 0, thisWeek: 0, thisMonth: 0, lastMonth: 0 },
-      // userPostActivity: [], // Keep commented until fully implemented
     };
   }
 }

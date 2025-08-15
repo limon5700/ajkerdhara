@@ -35,7 +35,7 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
   const [isPageLoading, setIsPageLoading] = useState(true);
-  const { getUIText, isClient } = useAppContext();
+  const { isClient } = useAppContext();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -48,16 +48,16 @@ export default function HomePage() {
         
         console.log('Fetching fresh articles from database...');
         
-        // Fetch articles from API with cache busting
+        // Fetch home page specific articles from API with cache busting
         const timestamp = Date.now();
-        const articlesResponse = await fetch(`/api/articles?t=${timestamp}`);
+        const articlesResponse = await fetch(`/api/articles?type=homepage&t=${timestamp}`);
         if (!articlesResponse.ok) {
           throw new Error('Failed to fetch articles');
         }
         const articlesData = await articlesResponse.json();
         const fetchedArticles = articlesData.articles || [];
-        console.log('Articles fetched:', fetchedArticles?.length || 0);
-        console.log('Fetched articles:', fetchedArticles);
+        console.log('Home page articles fetched:', fetchedArticles?.length || 0);
+        console.log('Fetched home page articles:', fetchedArticles);
         
         const sortedArticles = (Array.isArray(fetchedArticles) ? fetchedArticles : [])
           .sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
@@ -78,7 +78,7 @@ export default function HomePage() {
 
       } catch (error) {
         console.error("Failed to fetch articles or gadgets:", error);
-        toast({ title: getUIText("error") || "Error", description: "Failed to load page content.", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to load page content.", variant: "destructive" });
         setArticles([]);
       } finally {
         setIsPageLoading(false);
@@ -87,19 +87,53 @@ export default function HomePage() {
 
     fetchData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, toast, getUIText]);
+  }, [isClient, toast]);
 
   const filteredArticles = useMemo(() => {
     const safeArticles = Array.isArray(articles) ? articles : [];
-    return safeArticles
+    const termLower = searchTerm.toLowerCase();
+
+    // First, filter by category and search term
+    const baseFiltered = safeArticles
       .filter(article =>
         selectedCategory === 'All' || article.category === selectedCategory
       )
       .filter(article =>
-        article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (article.excerpt && article.excerpt.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (typeof article.category === 'string' && article.category.toLowerCase().includes(searchTerm.toLowerCase()))
+        article.title.toLowerCase().includes(termLower) ||
+        (article.excerpt && article.excerpt.toLowerCase().includes(termLower)) ||
+        (typeof article.category === 'string' && article.category.toLowerCase().includes(termLower))
       );
+
+    // Categorize articles based on displayPlacements
+    const heroArticle = baseFiltered.find(article => article.displayPlacements?.includes('homepage-hero')) || null;
+
+    const homepageLatestPosts = baseFiltered.filter(article => 
+        article.id !== heroArticle?.id && article.displayPlacements?.includes('homepage-latest-posts')
+    );
+
+    const homepageMoreHeadlines = baseFiltered.filter(article => 
+        article.id !== heroArticle?.id && article.displayPlacements?.includes('homepage-more-headlines')
+    );
+
+    const sidebarMustRead = baseFiltered.filter(article => 
+        article.id !== heroArticle?.id && article.displayPlacements?.includes('sidebar-must-read')
+    );
+
+    const articleRelated = baseFiltered.filter(article => 
+        article.id !== heroArticle?.id && article.displayPlacements?.includes('article-related')
+    );
+
+    // Articles that are not specifically assigned to any of the above homepage sections
+    const otherArticles = baseFiltered.filter(article => 
+        !article.displayPlacements || article.displayPlacements.length === 0 ||
+        (!article.displayPlacements.includes('homepage-hero') &&
+         !article.displayPlacements.includes('homepage-latest-posts') &&
+         !article.displayPlacements.includes('homepage-more-headlines') &&
+         !article.displayPlacements.includes('sidebar-must-read') &&
+         !article.displayPlacements.includes('article-related'))
+    );
+
+    return { heroArticle, homepageLatestPosts, homepageMoreHeadlines, sidebarMustRead, articleRelated, otherArticles };
   }, [articles, searchTerm, selectedCategory]);
 
   const handleSearch = useCallback((term: string) => {
@@ -188,10 +222,8 @@ export default function HomePage() {
     </div>
   );
 
-  // Separate featured article and remaining articles
-  const featuredArticle = filteredArticles.length > 0 ? filteredArticles[0] : null;
-  const remainingArticles = filteredArticles.slice(1);
-  const sidebarArticles = remainingArticles.slice(0, 5); // Show latest 5 articles in sidebar
+  // Destructure filtered articles
+  const { heroArticle, homepageLatestPosts, homepageMoreHeadlines, sidebarMustRead, articleRelated, otherArticles } = filteredArticles;
 
   return (
     <div className="flex flex-col min-h-screen bg-white text-black font-sans">
@@ -212,50 +244,49 @@ export default function HomePage() {
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Main Content Area - Left Side */}
               <div className="w-full lg:w-2/3 order-1">
-                {/* Featured Article - Hero Section (Latest Post) */}
-                {featuredArticle && (
+                {/* Featured Article - Hero Section */}
+                {heroArticle && (
                   <div className="mb-8">
-                    <FeaturedArticleCard article={featuredArticle} />
+                    <FeaturedArticleCard article={heroArticle} />
                   </div>
                 )}
 
-                {/* Latest Articles Grid (Posts 2-5) */}
-                {remainingArticles.length > 0 && (
+                {/* Latest Articles Grid */}
+                {homepageLatestPosts.length > 0 && (
                   <div className="mb-8">
                     <h3 className="text-xl font-bold text-black mb-4 border-b border-gray-300 pb-2">Latest Posts</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {remainingArticles.slice(0, 4).map((article) => (
+                      {homepageLatestPosts.map((article) => (
                         <NewsCard key={article.id} article={article} />
                       ))}
                     </div>
                   </div>
                 )}
 
-
-
                 {/* MORE HEADLINES Section */}
-                {remainingArticles.length > 5 && (
+                {homepageMoreHeadlines.length > 0 && (
                   <div className="mb-8 bg-white border border-gray-200 p-4 rounded-lg">
                     <h3 className="text-lg font-bold text-black mb-4 border-b border-gray-300 pb-2">MORE HEADLINES</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {remainingArticles.slice(5, 9).map((article) => (
+                      {homepageMoreHeadlines.map((article) => (
                         <SidebarArticleCard key={article.id} article={article} />
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Additional Articles Grid */}
-                {remainingArticles.length > 9 && (
+                {/* Additional Articles Grid (for articles not assigned to specific sections) */}
+                {otherArticles.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {remainingArticles.slice(9).map((article) => (
+                    <h3 className="text-xl font-bold text-black mb-4 border-b border-gray-300 pb-2">Other Articles</h3>
+                    {otherArticles.map((article) => (
                       <NewsCard key={article.id} article={article} />
                     ))}
                   </div>
                 )}
 
-                {filteredArticles.length === 0 && (
-                  <p className="text-center text-gray-600 mt-16 text-xl">{getUIText("noArticlesFound")}</p>
+                {!heroArticle && homepageLatestPosts.length === 0 && homepageMoreHeadlines.length === 0 && otherArticles.length === 0 && (
+                  <p className="text-center text-gray-600 mt-16 text-xl">No articles found</p>
                 )}
               </div>
 
@@ -264,21 +295,19 @@ export default function HomePage() {
                 {renderGadgetsForSection('sidebar-right')}
                 
                 {/* MUST READ Section */}
-                {sidebarArticles.length > 0 && (
+                {sidebarMustRead.length > 0 && (
                   <div className="bg-white border border-gray-200 p-4">
                     <h3 className="text-lg font-bold text-black mb-4 border-b border-gray-300 pb-2">MUST READ</h3>
                     <div className="space-y-4">
-                      {sidebarArticles.slice(0, 4).map((article) => (
+                      {sidebarMustRead.slice(0, 4).map((article) => (
                         <SidebarArticleCard key={article.id} article={article} />
                       ))}
                     </div>
                   </div>
                 )}
 
-
-
-                {activeGadgets['sidebar-right']?.length === 0 && sidebarArticles.length === 0 && (
-                  <Card className="p-4 bg-white border border-gray-200">
+                {activeGadgets['sidebar-right']?.length === 0 && sidebarMustRead.length === 0 && (
+                  <Card className="p-4 bg-white border border-gray-200 p-4">
                      <CardHeader className="p-0 pb-2"><CardTitle className="text-sm text-gray-600">Sidebar</CardTitle></CardHeader>
                      <CardContent className="p-0"><p className="text-xs text-gray-500">No content available.</p></CardContent>
                   </Card>
@@ -288,13 +317,13 @@ export default function HomePage() {
             
             <div className="mt-8">{renderGadgetsForSection('homepage-content-bottom')}</div>
             
-            {/* Related Posts Section */}
-            {filteredArticles.length > 0 && (
+            {/* Related Posts Section (using articleRelated) */}
+            {articleRelated.length > 0 && (
               <div className="mt-12">
                 <div className="container mx-auto px-4">
                   <h2 className="text-2xl font-bold text-black mb-6 border-b border-gray-200 pb-2">Related Posts</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {filteredArticles.slice(0, 8).map((article) => (
+                    {articleRelated.slice(0, 8).map((article) => (
                       <NewsCard key={`related-${article.id}`} article={article} />
                     ))}
                   </div>

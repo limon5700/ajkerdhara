@@ -5,7 +5,7 @@ console.log('🔧 Setting up environment variables for MongoDB connection...\n')
 
 const envContent = `# MongoDB Connection String
 # Replace <username> and <password> with your actual MongoDB Atlas credentials
-MONGODB_URI=mongodb+srv://brucerobert434:LiMoN003@cluster0.8obupn9.mongodb.net/usersdb?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_URI=mongodb+srv://ajkerdhara:ajkerdhara@ajkerdhara.lsyhesv.mongodb.net/?retryWrites=true&w=majority&appName=ajkerdhara
 
 # Next.js Configuration
 NEXT_PUBLIC_SITE_URL=http://localhost:3000

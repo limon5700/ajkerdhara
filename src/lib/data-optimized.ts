@@ -24,6 +24,9 @@ function mapMongoDocumentToNewsArticle(doc: any): NewsArticle {
     dataAiHint: doc.dataAiHint,
     inlineAdSnippets: doc.inlineAdSnippets || [],
     authorId: doc.authorId,
+    displayPlacements: doc.displayPlacements || [], // Include displayPlacements
+    detailsPageCategories: doc.detailsPageCategories || [], // Include category filters
+    detailsPageSpecificPosts: doc.detailsPageSpecificPosts || [], // Include specific post filters
     metaTitle: doc.metaTitle,
     metaDescription: doc.metaDescription,
     metaKeywords: doc.metaKeywords || [],
@@ -75,7 +78,6 @@ function mapMongoDocumentToSeoSettings(doc: any): SeoSettings {
 
 // Optimized function to get all news articles with simple caching
 export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle[]> {
-  // In development, always bypass cache to ensure fresh data
   if (process.env.NODE_ENV === 'development') {
     console.log('Development mode: bypassing cache for fresh data');
   }
@@ -83,8 +85,7 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
     const connection = await connectToDatabase();
     
     if (!connection.db || Object.keys(connection.db).length === 0) {
-      console.log("Using sample data for development mode");
-      return initialSampleNewsArticles;
+      throw new Error("Database connection not available.");
     }
     
     const { db } = connection;
@@ -98,47 +99,66 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
     const count = await articlesCollection.countDocuments();
     console.log(`Database has ${count} articles`);
     
-    if (count === 0 && initialSampleNewsArticles.length > 0) {
-        console.log("Seeding initial news articles...");
-        const articlesToSeed = initialSampleNewsArticles.map(article => {
-            const { id, ...restOfArticle } = article;
-            return {
-                ...restOfArticle,
-                publishedDate: new Date(article.publishedDate),
-                imageUrl: article.imageUrl || '', // Ensure imageUrl is explicitly preserved
-                inlineAdSnippets: article.inlineAdSnippets || [],
-                metaTitle: article.metaTitle || '',
-                metaDescription: article.metaDescription || '',
-                metaKeywords: article.metaKeywords || [],
-                ogTitle: article.ogTitle || '',
-                ogDescription: article.ogDescription || '',
-                ogImage: article.ogImage || '',
-                canonicalUrl: article.canonicalUrl || '',
-                articleYoutubeUrl: article.articleYoutubeUrl || '',
-                articleFacebookUrl: article.articleFacebookUrl || '',
-                articleMoreLinksUrl: article.articleMoreLinksUrl || '',
-                _id: new ObjectId(),
-            };
-        });
-        await articlesCollection.insertMany(articlesToSeed);
-        console.log(`${articlesToSeed.length} articles seeded.`);
-    }
+    // Removed seeding logic to ensure no mock data is ever inserted
+    // if (count === 0 && initialSampleNewsArticles.length > 0) {
+    //     console.log("Seeding initial news articles...");
+    //     const articlesToSeed = initialSampleNewsArticles.map(article => {
+    //         const { id, ...restOfArticle } = article;
+    //         return {
+    //             ...restOfArticle,
+    //             publishedDate: new Date(article.publishedDate),
+    //             imageUrl: article.imageUrl || '', // Ensure imageUrl is explicitly preserved
+    //             inlineAdSnippets: article.inlineAdSnippets || [],
+    //             metaTitle: article.metaTitle || '',
+    //             metaDescription: article.metaDescription || '',
+    //             metaKeywords: article.metaKeywords || [],
+    //             ogTitle: article.ogTitle || '',
+    //             ogDescription: article.ogDescription || '',
+    //             ogImage: article.ogImage || '',
+    //             canonicalUrl: article.canonicalUrl || '',
+    //             articleYoutubeUrl: article.articleYoutubeUrl || '',
+    //             articleFacebookUrl: article.articleFacebookUrl || '',
+    //             articleMoreLinksUrl: article.articleMoreLinksUrl || '',
+    //             _id: new ObjectId(),
+    //         };
+    //     });
+    //     await articlesCollection.insertMany(articlesToSeed);
+    //     console.log(`${articlesToSeed.length} articles seeded.`);
+    // }
 
-    const articlesCursor = articlesCollection.find(query).sort({ publishedDate: -1 });
+    const articlesCursor = articlesCollection.find(query, {
+      projection: {
+        _id: 1,
+        title: 1,
+        excerpt: 1,
+        category: 1,
+        publishedDate: 1,
+        imageUrl: 1,
+        dataAiHint: 1,
+        displayPlacements: 1, // Include displayPlacements in projection
+      },
+    }).sort({ publishedDate: -1 });
     const articlesArray = await articlesCursor.toArray();
     
-    // Debug: Check what fields are actually returned
+    // Debug: Check what fields are actually returned from the database
     if (articlesArray.length > 0) {
       console.log('Debug: First article from database has fields:', Object.keys(articlesArray[0]));
-      console.log('Debug: First article imageUrl:', articlesArray[0].imageUrl);
-      console.log('Debug: First article featuredImage:', articlesArray[0].featuredImage);
+      console.log('Debug: First article imageUrl from DB:', articlesArray[0].imageUrl);
+      console.log('Debug: First article featuredImage from DB:', articlesArray[0].featuredImage); // Check for alternative names
+      console.log('Debug: First article image from DB:', articlesArray[0].image); // Check for alternative names
+      console.log('Debug: First article displayPlacements from DB:', articlesArray[0].displayPlacements); // Check new field
+      // Log the full displayPlacements array from DB
+      // console.log('Debug: Full displayPlacements from DB (First article):', JSON.stringify(articlesArray[0].displayPlacements));
     }
     
     const result = articlesArray.map(mapMongoDocumentToNewsArticle);
     
-    // Debug: Check what fields are in the mapped result
+    // Debug: Check what imageUrl is in the mapped result
     if (result.length > 0) {
       console.log('Debug: First mapped article has imageUrl:', result[0].imageUrl);
+      console.log('Debug: First mapped article has displayPlacements:', result[0].displayPlacements);
+      // Log the full displayPlacements array from mapped result
+      // console.log('Debug: Full displayPlacements from mapped result (First article):', JSON.stringify(result[0].displayPlacements));
     }
     
     console.log(`Fetched ${result.length} articles from database`);
@@ -153,11 +173,7 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
   } catch (error) {
     console.error("Error fetching all news articles:", error);
     
-    if (process.env.NODE_ENV === 'development') {
-      console.warn("Returning sample data due to database connection failure");
-      return initialSampleNewsArticles;
-    }
-    
+    // Return empty array on error, do not return sample data
     return [];
   }
 }
@@ -179,13 +195,38 @@ export async function getArticleById(id: string): Promise<NewsArticle | null> {
   try {
     const { db } = await connectToDatabase();
     const objectId = new ObjectId(id);
-    const articleDoc = await db.collection('articles').findOne({ _id: objectId });
+    const articleDoc = await db.collection('articles').findOne({ _id: objectId }, {
+      projection: {
+        _id: 1,
+        title: 1,
+        content: 1,
+        excerpt: 1,
+        category: 1,
+        publishedDate: 1,
+        imageUrl: 1,
+        dataAiHint: 1,
+        inlineAdSnippets: 1,
+        authorId: 1,
+        metaTitle: 1,
+        metaDescription: 1,
+        metaKeywords: 1,
+        ogTitle: 1,
+        ogDescription: 1,
+        ogImage: 1,
+        canonicalUrl: 1,
+        articleYoutubeUrl: 1,
+        articleFacebookUrl: 1,
+        articleMoreLinksUrl: 1,
+        displayPlacements: 1, // Include displayPlacements in projection
+      },
+    });
     
     // Debug: Check what fields are returned for single article
     if (articleDoc) {
       console.log('Debug: Single article from database has fields:', Object.keys(articleDoc));
       console.log('Debug: Single article imageUrl:', articleDoc.imageUrl);
       console.log('Debug: Single article featuredImage:', articleDoc.featuredImage);
+      console.log('Debug: Single article displayPlacements:', articleDoc.displayPlacements);
     }
     
     const result = articleDoc ? mapMongoDocumentToNewsArticle(articleDoc) : null;
@@ -193,6 +234,7 @@ export async function getArticleById(id: string): Promise<NewsArticle | null> {
     // Debug: Check what fields are in the mapped single article
     if (result) {
       console.log('Debug: Single mapped article has imageUrl:', result.imageUrl);
+      console.log('Debug: Single mapped article has displayPlacements:', result.displayPlacements);
     }
     
     cache.set(cacheKey, result, 5 * 60 * 1000); // 5 minutes cache
@@ -216,10 +258,8 @@ export async function getRelatedArticles(currentArticleId: string, category: str
     const connection = await connectToDatabase();
     
     if (!connection.db || Object.keys(connection.db).length === 0) {
-      console.log("Using sample data for related articles in development mode");
-      return initialSampleNewsArticles
-        .filter(article => article.id !== currentArticleId)
-        .slice(0, limit);
+      // Removed sample data fallback
+      return [];
     }
     
     const { db } = connection;
@@ -230,6 +270,15 @@ export async function getRelatedArticles(currentArticleId: string, category: str
       .find({ 
         _id: { $ne: new ObjectId(currentArticleId) },
         category: category 
+      }, {
+        projection: {
+          _id: 1,
+          title: 1,
+          imageUrl: 1,
+          category: 1,
+          publishedDate: 1,
+          displayPlacements: 1, // Include displayPlacements in projection
+        },
       })
       .sort({ publishedDate: -1 })
       .limit(limit)
@@ -241,6 +290,15 @@ export async function getRelatedArticles(currentArticleId: string, category: str
         .find({ 
           _id: { $ne: new ObjectId(currentArticleId) },
           category: { $ne: category }
+        }, {
+          projection: {
+            _id: 1,
+            title: 1,
+            imageUrl: 1,
+            category: 1,
+            publishedDate: 1,
+            displayPlacements: 1, // Include displayPlacements in projection
+          },
         })
         .sort({ publishedDate: -1 })
         .limit(limit - relatedArticles.length)
@@ -272,7 +330,7 @@ export async function getActiveGadgetsBySection(section: LayoutSection): Promise
     const connection = await connectToDatabase();
     
     if (!connection.db || Object.keys(connection.db).length === 0) {
-      console.log("No gadgets available in development mode");
+      // Removed sample data fallback
       return [];
     }
     
@@ -285,9 +343,20 @@ export async function getActiveGadgetsBySection(section: LayoutSection): Promise
         isActive: true
     };
 
-    const gadgetsCursor = db.collection('advertisements').find(query).sort({ order: 1, createdAt: -1 });
+    const gadgetsCursor = db.collection('advertisements').find(query, {
+      projection: {
+        _id: 1,
+        section: 1,
+        title: 1,
+        content: 1,
+        isActive: 1,
+        order: 1,
+      },
+    }).sort({ order: 1, createdAt: -1 });
     const gadgetsArray = await gadgetsCursor.toArray();
     const result = gadgetsArray.map(mapMongoDocumentToGadget);
+    
+    console.log(`Debug: getActiveGadgetsBySection('${section}') returned ${result.length} gadgets. Sample:`, result.slice(0,2));
     
     cache.set(cacheKey, result, 10 * 60 * 1000); // 10 minutes cache
     return result;
@@ -311,28 +380,30 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
     const connection = await connectToDatabase();
     
     if (!connection.db || Object.keys(connection.db).length === 0) {
-      console.log("Using default SEO settings for development mode");
-      const defaultSettings = {
-        id: 'global_seo_settings_doc',
-        siteTitle: "AjkerDhara",
-        metaDescription: "Your concise news source, powered by AI.",
-        metaKeywords: ["news", "bangla news", "ai news", "latest news"],
-        faviconUrl: "/favicon.ico",
-        ogSiteName: "AjkerDhara",
-        ogLocale: "bn_BD",
-        ogType: "website",
-        twitterCard: "summary_large_image",
-        updatedAt: new Date().toISOString(),
-        footerYoutubeUrl: "https://youtube.com",
-        footerFacebookUrl: "https://facebook.com",
-        footerMoreLinksUrl: "#",
-      };
-      cache.set(cacheKey, defaultSettings, 30 * 60 * 1000);
-      return defaultSettings;
+      // Removed sample data fallback
+      return null;
     }
     
     const { db } = connection;
-    const settingsDoc = await db.collection('seo_settings').findOne({ _id: 'global_seo_settings_doc' as any });
+    const settingsDoc = await db.collection('seo_settings').findOne({ _id: 'global_seo_settings_doc' as any }, {
+      projection: {
+        _id: 1,
+        siteTitle: 1,
+        metaDescription: 1,
+        metaKeywords: 1,
+        faviconUrl: 1,
+        ogSiteName: 1,
+        ogLocale: 1,
+        ogType: 1,
+        twitterCard: 1,
+        twitterSite: 1,
+        twitterCreator: 1,
+        updatedAt: 1,
+        footerYoutubeUrl: 1,
+        footerFacebookUrl: 1,
+        footerMoreLinksUrl: 1,
+      },
+    });
     if (settingsDoc) {
       const result = {
         id: settingsDoc._id.toString(),
@@ -355,38 +426,12 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
       return result;
     }
     
-          const defaultSettings = {
-        id: 'global_seo_settings_doc',
-        siteTitle: "AjkerDhara",
-      metaDescription: "Your concise news source, powered by AI.",
-      metaKeywords: ["news", "bangla news", "ai news", "latest news"],
-      faviconUrl: "/favicon.ico",
-              ogSiteName: "AjkerDhara",
-      ogLocale: "bn_BD",
-      ogType: "website",
-      twitterCard: "summary_large_image",
-      updatedAt: new Date().toISOString(),
-      footerYoutubeUrl: "https://youtube.com",
-      footerFacebookUrl: "https://facebook.com",
-      footerMoreLinksUrl: "#",
-    };
-    cache.set(cacheKey, defaultSettings, 30 * 60 * 1000);
-    return defaultSettings;
+    // Return null if no settings found and no mock data fallback
+    return null;
   } catch (error) {
     console.error("Error fetching SEO settings:", error);
-    const fallbackSettings = { 
-      id: 'global_seo_settings_doc',
-      siteTitle: "AjkerDhara - Default",
-      metaDescription: "Default description.",
-      metaKeywords: [],
-      faviconUrl: "/favicon.ico",
-      updatedAt: new Date().toISOString(),
-      footerYoutubeUrl: "https://youtube.com",
-      footerFacebookUrl: "https://facebook.com",
-      footerMoreLinksUrl: "#",
-    };
-    cache.set(cacheKey, fallbackSettings, 30 * 60 * 1000);
-    return fallbackSettings;
+    // Return null on error, do not return fallback settings
+    return null;
   }
 }
 
@@ -402,6 +447,133 @@ export async function getActiveGadgetsBySections(sections: LayoutSection[]): Pro
   });
   
   return gadgetsBySection;
+}
+
+// Function to get articles specifically for home page
+export async function getHomePageArticles(authorId?: string): Promise<NewsArticle[]> {
+  try {
+    const connection = await connectToDatabase();
+    
+    if (!connection.db || Object.keys(connection.db).length === 0) {
+      throw new Error("Database connection not available.");
+    }
+    
+    const { db } = connection;
+    const articlesCollection = db.collection('articles');
+
+    const query: any = {
+      displayPlacements: { 
+        $in: ['homepage-hero', 'homepage-latest-posts', 'homepage-more-headlines', 'sidebar-must-read'] 
+      }
+    };
+    
+    if (authorId && authorId !== 'SUPERADMIN_ENV') {
+        query.authorId = authorId;
+    }
+
+    const articlesCursor = articlesCollection.find(query, {
+      projection: {
+        _id: 1,
+        title: 1,
+        excerpt: 1,
+        category: 1,
+        publishedDate: 1,
+        imageUrl: 1,
+        dataAiHint: 1,
+        displayPlacements: 1,
+      },
+    }).sort({ publishedDate: -1 });
+    
+    const articlesArray = await articlesCursor.toArray();
+    const result = articlesArray.map(mapMongoDocumentToNewsArticle);
+    
+    console.log(`Fetched ${result.length} home page articles from database`);
+    return result;
+  } catch (error) {
+    console.error("Error fetching home page articles:", error);
+    return [];
+  }
+}
+
+// Function to get articles specifically for article details pages  
+export async function getDetailsPageArticles(authorId?: string, currentArticleCategory?: string, currentArticleId?: string, placement?: 'article-related' | 'article-sidebar'): Promise<NewsArticle[]> {
+  try {
+    const connection = await connectToDatabase();
+    
+    if (!connection.db || Object.keys(connection.db).length === 0) {
+      throw new Error("Database connection not available.");
+    }
+    
+    const { db } = connection;
+    const articlesCollection = db.collection('articles');
+
+    // If specific placement is requested, filter by that placement only
+    const displayPlacementFilter = placement 
+      ? { displayPlacements: { $in: [placement] } }
+      : { displayPlacements: { $in: ['article-related', 'article-sidebar'] } };
+
+    const query: any = {
+      ...displayPlacementFilter
+    };
+    
+    if (authorId && authorId !== 'SUPERADMIN_ENV') {
+        query.authorId = authorId;
+    }
+
+    // Build filtering conditions for targeting
+    const targetingConditions = [];
+
+    // If we have a current article category, add category-based filtering
+    if (currentArticleCategory) {
+      targetingConditions.push(
+        { detailsPageCategories: { $in: [currentArticleCategory] } } // Articles targeted for this category
+      );
+    }
+
+    // If we have a current article ID, add post-specific targeting
+    if (currentArticleId) {
+      targetingConditions.push(
+        { detailsPageSpecificPosts: { $in: [currentArticleId] } } // Articles targeted for this specific post
+      );
+    }
+
+    // Always include articles with no targeting restrictions (universal articles)
+    targetingConditions.push(
+      { detailsPageCategories: { $exists: false } }, // Articles with no category filter (show everywhere)
+      { detailsPageCategories: { $size: 0 } }, // Articles with empty category filter (show everywhere)
+      { detailsPageSpecificPosts: { $exists: false } }, // Articles with no post-specific filter
+      { detailsPageSpecificPosts: { $size: 0 } } // Articles with empty post-specific filter
+    );
+
+    // Apply targeting conditions if we have any filters
+    if (currentArticleCategory || currentArticleId) {
+      query.$or = targetingConditions;
+    }
+
+    const articlesCursor = articlesCollection.find(query, {
+      projection: {
+        _id: 1,
+        title: 1,
+        excerpt: 1,
+        category: 1,
+        publishedDate: 1,
+        imageUrl: 1,
+        dataAiHint: 1,
+        displayPlacements: 1,
+        detailsPageCategories: 1,
+        detailsPageSpecificPosts: 1,
+      },
+    }).sort({ publishedDate: -1 });
+    
+    const articlesArray = await articlesCursor.toArray();
+    const result = articlesArray.map(mapMongoDocumentToNewsArticle);
+    
+    console.log(`Fetched ${result.length} details page articles from database (placement: ${placement || 'all'}, category: ${currentArticleCategory || 'all'}, post: ${currentArticleId || 'all'})`);
+    return result;
+  } catch (error) {
+    console.error("Error fetching details page articles:", error);
+    return [];
+  }
 }
 
 // Note: This file contains optimized versions of the main data functions

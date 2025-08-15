@@ -12,7 +12,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: '**',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '**',
         port: '',
         pathname: '/**',
       },
@@ -54,6 +60,14 @@ const nextConfig: NextConfig = {
           },
         },
       };
+
+      // Exclude problematic modules from client-side bundle
+      config.externals = config.externals || {};
+      Object.assign(config.externals, {
+        'handlebars': 'commonjs handlebars',
+        '@opentelemetry/exporter-jaeger': 'commonjs @opentelemetry/exporter-jaeger',
+        '@genkit-ai/firebase': 'commonjs @genkit-ai/firebase', // Exclude firebase as well
+      });
     }
     return config;
   },

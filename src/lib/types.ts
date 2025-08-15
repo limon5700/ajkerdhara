@@ -10,6 +10,9 @@ export interface NewsArticle {
   dataAiHint?: string; 
   inlineAdSnippets?: string[]; 
   authorId?: string; // Can be .env admin or a DB user ID
+  displayPlacements?: ArticleDisplayLocation[]; // New field to define where the article should be displayed
+  detailsPageCategories?: string[]; // Categories that should trigger this article to show in details pages
+  detailsPageSpecificPosts?: string[]; // Specific post IDs that should show this article in their details pages
 
   metaTitle?: string;
   metaDescription?: string;
@@ -38,6 +41,16 @@ export type LayoutSection =
   | 'article-inline' 
   | 'header-logo-area'
   | 'below-header'
+  ;
+
+// New type for defining article display locations
+export type ArticleDisplayLocation =
+  | 'homepage-hero'
+  | 'homepage-latest-posts'
+  | 'homepage-more-headlines'
+  | 'sidebar-must-read'
+  | 'article-related'
+  | 'article-sidebar'
   ;
 
 export interface Gadget {

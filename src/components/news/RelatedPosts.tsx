@@ -3,6 +3,7 @@
 import type { NewsArticle } from "@/lib/types";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
+import { CategoryBadge } from "@/components/ui/category-badge";
 import { CalendarDays } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { bn } from 'date-fns/locale';
@@ -67,9 +68,7 @@ export default function RelatedPosts({ articles, currentArticleId }: RelatedPost
                 )}
                 <div className="p-4">
                   <div className="flex items-center text-xs text-gray-500 space-x-2 mb-2">
-                    <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 border-0 font-semibold">
-                      {article.category}
-                    </Badge>
+                    <CategoryBadge category={article.category} size="sm" />
                     <div className="flex items-center">
                       <CalendarDays className="mr-1 h-3 w-3" />
                       <span suppressHydrationWarning>{relativeDate}</span>

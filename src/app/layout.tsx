@@ -6,14 +6,14 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AppProvider } from '@/context/AppContext';
 import { getSeoSettings } from '@/lib/data';
-import { PerformanceMonitor } from '@/components/ui/performance-monitor'; 
+ 
 
 export async function generateMetadata(): Promise<Metadata> {
   const seoSettings = await getSeoSettings();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:9002'; 
 
-  const title = seoSettings?.siteTitle || 'আজকের ধারা | AjkerDhara';
-  const description = seoSettings?.metaDescription || 'Your concise news source, powered by AI.';
+  const title = seoSettings?.siteTitle || 'Clypio - Global Stories in a Snap';
+  const description = seoSettings?.metaDescription || 'Your global news source in a snap, powered by AI.';
   
   const metadataBase = siteUrl ? new URL(siteUrl) : undefined;
 
@@ -30,15 +30,15 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: description,
     keywords: seoSettings?.metaKeywords || ['news', 'bangla news', 'ai news', 'latest news', 'technology', 'sports'],
-          authors: [{ name: 'AjkerDhara Team', url: siteUrl }],
-      creator: 'AjkerDhara Team',
-      publisher: 'AjkerDhara',
+          authors: [{ name: 'Clypio Team', url: siteUrl }],
+      creator: 'Clypio Team',
+      publisher: 'Clypio',
     alternates: {
       canonical: '/',
     },
     icons: {
-      icon: seoSettings?.faviconUrl || '/favicon.ico', 
-      shortcut: seoSettings?.faviconUrl || '/favicon.ico',
+      icon: seoSettings?.faviconUrl || '/favicon.svg', 
+      shortcut: seoSettings?.faviconUrl || '/favicon.svg',
       apple: '/apple-touch-icon.png', 
     },
     openGraph: {
@@ -102,7 +102,6 @@ export default function RootLayout({
         <AppProvider>
           {children}
           <Toaster />
-          <PerformanceMonitor />
         </AppProvider>
       </body>
     </html>

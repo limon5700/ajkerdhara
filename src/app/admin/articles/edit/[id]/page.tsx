@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ArticleForm, { type ArticleFormData } from "@/components/admin/ArticleForm";
 import type { NewsArticle } from "@/lib/types";
-import { getArticleById, updateNewsArticle, addActivityLogEntry } from "@/lib/data";
+import { getArticleById, addActivityLogEntry } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { getSession } from "@/app/admin/auth/actions";
@@ -76,7 +76,7 @@ export default function EditArticlePage() {
         inlineAdSnippets: data.inlineAdSnippetsInput?.split('\n\n').map(s => s.trim()).filter(s => s !== '') || [],
         metaTitle: data.metaTitle,
         metaDescription: data.metaDescription,
-        metaKeywords: data.metaKeywords?.split(',').map(k => k.trim()).filter(k => k),
+        metaKeywords: data.metaKeywords, // Remove split() here, as ArticleForm already handles it
         ogTitle: data.ogTitle,
         ogDescription: data.ogDescription,
         ogImage: data.ogImage,
@@ -84,11 +84,22 @@ export default function EditArticlePage() {
         articleYoutubeUrl: data.articleYoutubeUrl,
         articleFacebookUrl: data.articleFacebookUrl,
         articleMoreLinksUrl: data.articleMoreLinksUrl,
+        displayPlacements: data.displayPlacements,
+        detailsPageCategories: data.detailsPageCategories,
+        detailsPageSpecificPosts: data.detailsPageSpecificPosts,
       };
 
-      const result = await updateNewsArticle(article.id, updateData);
-      
-      if (result) {
+      // const result = await updateNewsArticle(article.id, updateData); // Old direct server action call
+      const response = await fetch('/api/articles', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: article.id, ...updateData }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
         toast({ title: "Success", description: "Article updated successfully." });
         
         await addActivityLogEntry({ 

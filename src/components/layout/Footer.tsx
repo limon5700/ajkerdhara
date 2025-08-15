@@ -1,49 +1,34 @@
 
 "use client";
 
-import { useAppContext } from "@/context/AppContext";
 import { useEffect, useState } from "react";
 import type { SeoSettings } from "@/lib/types";
 import { getSeoSettings } from "@/lib/data";
 import { Youtube, Facebook, Link as LinkIcon } from "lucide-react"; 
 
 export default function Footer() {
-  const { getUIText, isClient } = useAppContext();
   const [year, setYear] = useState(2025); // Static for SSR
-  const [footerText, setFooterText] = useState({
-    reserved: "",
-    poweredBy: "",
-    appName: ""
-  });
   const [seoSettings, setSeoSettings] = useState<SeoSettings | null>(null);
+
+  const footerText = {
+    reserved: "All rights reserved.",
+    poweredBy: "Powered by Clypio",
+    appName: "Clypio"
+  };
 
   useEffect(() => {
     setYear(new Date().getFullYear()); 
-    if (isClient) {
-      setFooterText({
-        reserved: getUIText("footerReserved"),
-        poweredBy: getUIText("footerPoweredBy"),
-        appName: getUIText("appName")
-      });
-
-      const fetchSettings = async () => {
-        try {
-          const settings = await getSeoSettings();
-          setSeoSettings(settings);
-        } catch (error) {
-          console.error("Error fetching SEO settings for footer:", error);
-        }
-      };
-      fetchSettings();
-
-    } else {
-       setFooterText({
-        reserved: "All rights reserved.",
-            poweredBy: "Powered by AjkerDhara",
-    appName: "AjkerDhara"
-      });
-    }
-  }, [isClient, getUIText]);
+    
+    const fetchSettings = async () => {
+      try {
+        const settings = await getSeoSettings();
+        setSeoSettings(settings);
+      } catch (error) {
+        console.error("Error fetching SEO settings for footer:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
 
   return (

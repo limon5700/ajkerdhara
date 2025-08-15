@@ -23,7 +23,8 @@ export const defaultLanguage: string = 'bn';
 
 export const uiTexts: Record<string, Record<string, string>> = {
   en: {
-    appName: "AjkerDhara",
+    appName: "Clypio",
+    appSubtitle: "Global Stories in a Snap",
     searchPlaceholder: "Search news...",
     allCategories: "All",
     technologyCategory: "Technology",
@@ -44,7 +45,7 @@ export const uiTexts: Record<string, Record<string, string>> = {
     translateContent: "Translate Content",
     showOriginal: "Show Original",
     footerReserved: "All rights reserved.",
-    footerPoweredBy: "Powered by AjkerDhara",
+    footerPoweredBy: "Powered by Clypio",
     theme: "Theme",
     lightTheme: "Light",
     darkTheme: "Dark",
@@ -117,7 +118,8 @@ export const uiTexts: Record<string, Record<string, string>> = {
     activityLog: "Activity Log",
   },
   bn: {
-    appName: "আজকের ধারা",
+    appName: "ক্লিপিও",
+    appSubtitle: "এক নিমিষে বিশ্বের গল্প",
     searchPlaceholder: "খবর অনুসন্ধান করুন...",
     allCategories: "সব",
     technologyCategory: "প্রযুক্তি",
@@ -138,7 +140,7 @@ export const uiTexts: Record<string, Record<string, string>> = {
     translateContent: "বিষয়বস্তু অনুবাদ করুন",
     showOriginal: "মূল দেখান",
     footerReserved: "সর্বস্বত্ব সংরক্ষিত।",
-    footerPoweredBy: "আজকের ধারা দ্বারা চালিত",
+    footerPoweredBy: "ক্লিপিও দ্বারা চালিত",
     theme: "থিম",
     lightTheme: "লাইট",
     darkTheme: "ডার্ক",

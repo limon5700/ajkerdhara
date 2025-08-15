@@ -1,4 +1,4 @@
-# **App Name**: AjkerDhara
+# **App Name**: Clypio - Global Stories in a Snap
 
 ## Core Features:
 

@@ -5,11 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { HeroImage } from "@/components/ui/optimized-image";
 import { Badge } from "@/components/ui/badge";
+import { CategoryBadge } from "@/components/ui/category-badge";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { bn } from 'date-fns/locale';
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
+import Image from 'next/image'; // Import Next.js Image component
 
 interface FeaturedArticleCardProps {
   article: NewsArticle;
@@ -31,17 +33,18 @@ export default function FeaturedArticleCard({ article }: FeaturedArticleCardProp
     }) : 
     '';
 
-  // Debug: Log the imageUrl to the browser console
-  console.log('FeaturedArticleCard imageUrl:', article.imageUrl);
-
   return (
     <Link href={`/article/${article.id}`} className="block">
-      <div className="relative overflow-hidden bg-white border border-gray-200 hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+      <div className="relative overflow-hidden bg-white hover:shadow-lg transition-shadow duration-300 cursor-pointer">
         <div className="relative w-full h-96">
-          <HeroImage
+          <Image // Changed from HeroImage to Image
             src={article.imageUrl || "/placeholder-image.svg"}
             alt={displayTitle}
-            dataAiHint={article.dataAiHint || "featured news article"}
+            fill={true} // Use fill={true} as in details page
+            priority={true} // Likely a LCP image
+            data-ai-hint={article.dataAiHint || "featured news article"}
+            unoptimized={true} // Base64 images are not optimized
+            style={{ objectFit: "cover" }} // Ensure objectFit is cover
           />
           {/* Dark overlay for text readability */}
           <div className="absolute inset-0 bg-black bg-opacity-40"></div>
@@ -49,7 +52,7 @@ export default function FeaturedArticleCard({ article }: FeaturedArticleCardProp
           {/* Content overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
             <div className="flex items-center text-sm space-x-4 mb-3">
-              <Badge variant="secondary" className="text-xs bg-red-600 text-white border-0">{article.category}</Badge>
+              <CategoryBadge category={article.category} size="sm" />
               <div className="flex items-center">
                 <CalendarDays className="mr-1 h-4 w-4" />
                 <span>{relativeDate}</span>

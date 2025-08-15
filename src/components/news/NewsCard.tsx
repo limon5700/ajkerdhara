@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { ResponsiveImage } from "@/components/ui/optimized-image";
 import { Badge } from "@/components/ui/badge";
+import { CategoryBadge } from "@/components/ui/category-badge";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { bn } from 'date-fns/locale'; // Import Bengali locale
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import Image from 'next/image'; // Import Next.js Image component
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -19,9 +21,6 @@ interface NewsCardProps {
 
 export default function NewsCard({ article }: NewsCardProps) {
   const { getUIText, isClient, language: currentLocale } = useAppContext();
-
-  // Debug: Log the imageUrl to the browser console
-  console.log('NewsCard imageUrl:', article.imageUrl);
 
   if (!isClient) {
     let formattedDateSsr = "N/A";
@@ -41,18 +40,22 @@ export default function NewsCard({ article }: NewsCardProps) {
     }
 
     return (
-      <Card className="flex flex-col h-full overflow-hidden shadow-lg rounded-lg bg-white border border-gray-200">
+      <Card className="flex flex-col h-full overflow-hidden shadow-lg rounded-lg bg-white">
         <div className="relative w-full aspect-video"> {/* Changed h-48 to aspect-video */}
-          <ResponsiveImage
+          <Image // Changed from ResponsiveImage to Image
             src={article.imageUrl || "/placeholder-image.svg"}
             alt={article.title}
-            dataAiHint={article.dataAiHint || "news article"}
+            fill={true} // Use fill={true} as in details page
+            priority={false} // Not a LCP image
+            data-ai-hint={article.dataAiHint || "news article"}
+            unoptimized={true} // Base64 images are not optimized
+            style={{ objectFit: "cover" }} // Ensure objectFit is cover
           />
         </div>
         <CardHeader>
           <CardTitle className="text-xl leading-tight mb-1 text-gray-900">{article.title}</CardTitle>
            <div className="flex items-center text-xs text-gray-500 space-x-2">
-            <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-700">{article.category}</Badge>
+            <CategoryBadge category={article.category} size="sm" />
             <div className="flex items-center">
                 <CalendarDays className="mr-1 h-3 w-3" />
                 <span>{formattedDateSsr}</span>
@@ -96,17 +99,21 @@ export default function NewsCard({ article }: NewsCardProps) {
 
   return (
     <Link href={`/article/${article.id}`} className="block">
-      <div className="flex flex-col h-full overflow-hidden bg-white border border-gray-200 hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+      <div className="flex flex-col h-full overflow-hidden bg-white hover:shadow-lg transition-shadow duration-300 cursor-pointer">
         <div className="relative w-full aspect-video">
-          <ResponsiveImage
+          <Image // Changed from ResponsiveImage to Image
             src={article.imageUrl || "/placeholder-image.svg"}
             alt={displayTitle}
-            dataAiHint={article.dataAiHint || "news article"}
+            fill={true} // Use fill={true} as in details page
+            priority={false} // Not a LCP image
+            data-ai-hint={article.dataAiHint || "news article"}
+            unoptimized={true} // Base64 images are not optimized
+            style={{ objectFit: "cover" }} // Ensure objectFit is cover
           />
         </div>
         <div className="p-4 flex-grow">
           <div className="flex items-center text-xs text-gray-500 space-x-2 mb-2">
-            <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 border-0">{article.category}</Badge>
+            <CategoryBadge category={article.category} size="sm" />
             <div className="flex items-center">
               <CalendarDays className="mr-1 h-3 w-3" />
               <span>{relativeDate}</span>

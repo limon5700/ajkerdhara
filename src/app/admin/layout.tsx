@@ -47,7 +47,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       {showAdminNav && (
         <aside className="sticky top-0 h-screen w-64 bg-background border-r flex flex-col p-4 z-30">
           <Link href="/admin/dashboard" className="text-2xl font-bold text-primary mb-8 hover:opacity-80 transition-opacity" prefetch={false}>
-            AjkerDhara - Admin {session?.username ? `(${session.username})` : ''}
+            Clypio - Admin {session?.username ? `(${session.username})` : ''}
           </Link>
           <nav className="flex flex-col gap-2 flex-1">
             <Button variant="outline" size="sm" asChild className="justify-start">
@@ -116,7 +116,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       <div className="flex-1 flex flex-col min-h-screen">
         <main className="flex-1 p-4 sm:px-6 sm:py-0 md:gap-8">{children}</main>
         <footer className="border-t bg-background py-4 text-center text-sm text-muted-foreground mt-auto">
-          © {new Date().getFullYear()} AjkerDhara Admin Panel
+          © {new Date().getFullYear()} Clypio Admin Panel
         </footer>
       </div>
     </div>

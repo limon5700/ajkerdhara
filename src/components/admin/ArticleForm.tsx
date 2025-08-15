@@ -2,6 +2,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,11 +25,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { NewsArticle, Category, CreateNewsArticleData } from "@/lib/types";
+import type { NewsArticle, Category, CreateNewsArticleData, ArticleDisplayLocation } from "@/lib/types";
 import { categories as allNewsCategories } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Info, Loader2, Youtube, Facebook, Link as LinkIcon } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox component
 
 const articleFormSchema = z.object({
   title: z.string().min(5, { message: "Title must be at least 5 characters." }).max(150),
@@ -38,6 +40,15 @@ const articleFormSchema = z.object({
   imageUrl: z.string().optional().or(z.literal('')),
   dataAiHint: z.string().max(50).optional().or(z.literal('')),
   inlineAdSnippetsInput: z.string().optional(),
+
+  // New field for display placements
+  displayPlacements: z.array(z.enum(['homepage-hero', 'homepage-latest-posts', 'homepage-more-headlines', 'sidebar-must-read', 'article-related', 'article-sidebar'])).optional(),
+  
+  // Field for category-based filtering for details page articles
+  detailsPageCategories: z.array(z.string()).optional(),
+  
+  // Field for specific post targeting for details page articles
+  detailsPageSpecificPosts: z.array(z.string()).optional(),
 
   // SEO Fields
   metaTitle: z.string().max(70, "Meta title should be 70 chars or less.").optional().or(z.literal('')),
@@ -66,8 +77,61 @@ interface ArticleFormProps {
   isSubmitting?: boolean;
 }
 
+const ARTICLE_DISPLAY_LOCATIONS: { 
+  label: string; 
+  value: ArticleDisplayLocation; 
+  description: string; 
+  category: 'homepage' | 'details' 
+}[] = [
+  { 
+    label: 'Homepage Hero (Featured)', 
+    value: 'homepage-hero', 
+    description: 'Main featured article on homepage', 
+    category: 'homepage' 
+  },
+  { 
+    label: 'Homepage Latest Posts', 
+    value: 'homepage-latest-posts', 
+    description: 'Latest news section on homepage', 
+    category: 'homepage' 
+  },
+  { 
+    label: 'Homepage More Headlines', 
+    value: 'homepage-more-headlines', 
+    description: 'More headlines section on homepage', 
+    category: 'homepage' 
+  },
+  { 
+    label: 'Sidebar Must Read (Homepage)', 
+    value: 'sidebar-must-read', 
+    description: 'Must read section on homepage sidebar', 
+    category: 'homepage' 
+  },
+  { 
+    label: 'Article Related Posts', 
+    value: 'article-related', 
+    description: 'Related posts in article details pages', 
+    category: 'details' 
+  },
+  { 
+    label: 'Article Sidebar', 
+    value: 'article-sidebar', 
+    description: 'Sidebar content in article details pages', 
+    category: 'details' 
+  },
+];
+
 export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting }: ArticleFormProps) {
   const { toast } = useToast();
+  const [selectedDisplayPlacements, setSelectedDisplayPlacements] = useState<string[]>(article?.displayPlacements || []);
+  const [availableArticles, setAvailableArticles] = useState<NewsArticle[]>([]);
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>((article as any)?.detailsPageCategories || []);
+  
+  const hasDetailsPagePlacement = selectedDisplayPlacements.some(placement => 
+    ['article-related', 'article-sidebar'].includes(placement)
+  );
+  
   const form = useForm<ArticleFormData>({
     resolver: zodResolver(articleFormSchema),
     defaultValues: {
@@ -78,6 +142,9 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
       imageUrl: article?.imageUrl || "",
       dataAiHint: article?.dataAiHint || "",
       inlineAdSnippetsInput: article?.inlineAdSnippets?.join('\n\n') || "",
+      displayPlacements: article?.displayPlacements || [], // Initialize displayPlacements
+      detailsPageCategories: (article as any)?.detailsPageCategories || [], // Initialize category filters
+      detailsPageSpecificPosts: (article as any)?.detailsPageSpecificPosts || [], // Initialize specific post filters
       // SEO Fields
       metaTitle: article?.metaTitle || "",
       metaDescription: article?.metaDescription || "",
@@ -92,6 +159,54 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
       articleMoreLinksUrl: article?.articleMoreLinksUrl || "",
     },
   });
+
+  // Watch the form values to sync selectedCategories with the actual form state
+  const watchedCategories = form.watch("detailsPageCategories");
+  
+  // Update selectedCategories when form values change
+  useEffect(() => {
+    if (watchedCategories) {
+      setSelectedCategories(watchedCategories);
+    }
+  }, [watchedCategories]);
+
+  // Fetch available articles when details page placement is selected
+  useEffect(() => {
+    if (hasDetailsPagePlacement && availableArticles.length === 0) {
+      setIsLoadingArticles(true);
+      fetch('/api/articles')
+        .then(response => response.json())
+        .then(data => {
+          const articles = data.articles || [];
+          // Filter out the current article if editing
+          const filteredArticles = articles.filter((art: NewsArticle) => art.id !== article?.id);
+          setAvailableArticles(filteredArticles);
+        })
+        .catch(error => {
+          console.error('Error fetching articles:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load articles for targeting.",
+            variant: "destructive",
+          });
+        })
+        .finally(() => {
+          setIsLoadingArticles(false);
+        });
+    }
+  }, [hasDetailsPagePlacement, article?.id, toast, availableArticles.length]);
+
+  // Filter available articles based on selected categories
+  const filteredAvailableArticles = selectedCategories.length > 0 
+    ? availableArticles.filter(art => selectedCategories.includes(art.category))
+    : availableArticles;
+    
+  // Debug logging
+  useEffect(() => {
+    console.log('Selected categories changed:', selectedCategories);
+    console.log('Available articles:', availableArticles.length);
+    console.log('Filtered articles:', filteredAvailableArticles.length);
+  }, [selectedCategories, availableArticles.length, filteredAvailableArticles.length]);
 
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -126,7 +241,7 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
 
  const handleSubmit = (data: ArticleFormData) => {
     const snippets = data.inlineAdSnippetsInput?.split('\n\n').map(s => s.trim()).filter(s => s !== '') || [];
-    const keywordsArray = data.metaKeywords?.split(',').map(k => k.trim()).filter(k => k) || [];
+    const keywordsArray = String(data.metaKeywords || '').split(',').map(k => k.trim()).filter(k => k) || [];
 
     const finalData: ProcessedArticleFormData = {
         title: data.title,
@@ -136,6 +251,9 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         imageUrl: data.imageUrl || undefined,
         dataAiHint: data.dataAiHint || undefined,
         inlineAdSnippets: snippets,
+        displayPlacements: data.displayPlacements || [], // Include displayPlacements
+        detailsPageCategories: data.detailsPageCategories || [], // Include category filters
+        detailsPageSpecificPosts: data.detailsPageSpecificPosts || [], // Include specific post filters
         // SEO fields
         metaTitle: data.metaTitle || undefined,
         metaDescription: data.metaDescription || undefined,
@@ -149,7 +267,8 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         articleFacebookUrl: data.articleFacebookUrl || undefined,
         articleMoreLinksUrl: data.articleMoreLinksUrl || undefined,
     };
-    onSubmit(data);
+    // Type assertion to handle metaKeywords conversion
+    onSubmit(finalData as any);
   };
 
   return (
@@ -247,6 +366,249 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
             </FormItem>
           )}
         />
+        
+        {/* Enhanced section for Display Placements */}
+        <FormField
+          control={form.control}
+          name="displayPlacements"
+          render={() => (
+            <FormItem>
+              <div className="mb-4">
+                <FormLabel className="text-base">Display Locations</FormLabel>
+                <FormDescription>
+                  Select where this article should be featured on the website.
+                </FormDescription>
+              </div>
+              
+              {/* Homepage Placements */}
+              <div className="mb-6">
+                <h4 className="font-medium text-sm mb-3 text-blue-600">Homepage Placements</h4>
+                {ARTICLE_DISPLAY_LOCATIONS.filter(item => item.category === 'homepage').map((item) => (
+                  <FormField
+                    key={item.value}
+                    control={form.control}
+                    name="displayPlacements"
+                    render={({ field }) => {
+                      return (
+                        <FormItem
+                          key={item.value}
+                          className="flex flex-row items-start space-x-3 space-y-0 mb-3"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(item.value)}
+                              onCheckedChange={(checked) => {
+                                const newValue = checked
+                                  ? [...(field.value || []), item.value]
+                                  : field.value?.filter((value) => value !== item.value);
+                                field.onChange(newValue);
+                                setSelectedDisplayPlacements(newValue || []);
+                              }}
+                            />
+                          </FormControl>
+                          <div>
+                            <FormLabel className="font-normal">
+                              {item.label}
+                            </FormLabel>
+                            <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                          </div>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+
+              {/* Details Page Placements */}
+              <div className="mb-6">
+                <h4 className="font-medium text-sm mb-3 text-green-600">Article Details Page Placements</h4>
+                {ARTICLE_DISPLAY_LOCATIONS.filter(item => item.category === 'details').map((item) => (
+                  <FormField
+                    key={item.value}
+                    control={form.control}
+                    name="displayPlacements"
+                    render={({ field }) => {
+                      return (
+                        <FormItem
+                          key={item.value}
+                          className="flex flex-row items-start space-x-3 space-y-0 mb-3"
+                        >
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(item.value)}
+                              onCheckedChange={(checked) => {
+                                const newValue = checked
+                                  ? [...(field.value || []), item.value]
+                                  : field.value?.filter((value) => value !== item.value);
+                                field.onChange(newValue);
+                                setSelectedDisplayPlacements(newValue || []);
+                              }}
+                            />
+                          </FormControl>
+                          <div>
+                            <FormLabel className="font-normal">
+                              {item.label}
+                            </FormLabel>
+                            <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                          </div>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Category Filter for Details Page Articles */}
+        {hasDetailsPagePlacement && (
+          <FormField
+            control={form.control}
+            name="detailsPageCategories"
+            render={() => (
+              <FormItem>
+                <div className="mb-4">
+                  <FormLabel className="text-base">Category-Based Display for Details Pages</FormLabel>
+                  <FormDescription>
+                    Select which article categories should trigger this post to appear in their details pages. 
+                    If none selected, it will appear in all details pages.
+                  </FormDescription>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {allNewsCategories.map((category) => (
+                    <FormField
+                      key={category}
+                      control={form.control}
+                      name="detailsPageCategories"
+                      render={({ field }) => {
+                        return (
+                          <FormItem
+                            key={category}
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <FormControl>
+                                                          <Checkbox
+                              checked={field.value?.includes(category)}
+                              onCheckedChange={(checked) => {
+                                console.log(`Category ${category} ${checked ? 'checked' : 'unchecked'}`);
+                                const newCategories = checked
+                                  ? [...(field.value || []), category]
+                                  : field.value?.filter((value) => value !== category);
+                                console.log('New categories:', newCategories);
+                                field.onChange(newCategories);
+                              }}
+                            />
+                            </FormControl>
+                            <FormLabel className="font-normal text-sm">
+                              {category}
+                            </FormLabel>
+                          </FormItem>
+                        );
+                      }}
+                    />
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {/* Specific Post Targeting for Details Page Articles */}
+        {hasDetailsPagePlacement && (
+          <FormField
+            control={form.control}
+            name="detailsPageSpecificPosts"
+            render={() => (
+              <FormItem>
+                <div className="mb-4">
+                  <FormLabel className="text-base">Specific Post Targeting for Details Pages</FormLabel>
+                  <FormDescription>
+                    Select specific posts where this article should appear in their details pages. 
+                    {selectedCategories.length > 0 && (
+                      <span className="block mt-1 text-blue-600 font-medium">
+                        📋 Showing posts filtered by: {selectedCategories.map(cat => `"${cat}"`).join(', ')}
+                      </span>
+                    )}
+                    {selectedCategories.length === 0 && (
+                      <span className="block mt-1 text-gray-600">
+                        💡 Select categories above to filter posts, or browse all posts below.
+                      </span>
+                    )}
+                  </FormDescription>
+                </div>
+                {isLoadingArticles ? (
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm text-gray-500">Loading available posts...</span>
+                  </div>
+                ) : (
+                  <div className="max-h-60 overflow-y-auto border rounded-md p-3 space-y-2">
+                    {availableArticles.length === 0 ? (
+                      <p className="text-sm text-gray-500">No posts available for targeting.</p>
+                    ) : filteredAvailableArticles.length === 0 ? (
+                      <div className="text-center p-4">
+                        <p className="text-sm text-gray-500 mb-2">No posts found in selected categories.</p>
+                        <p className="text-xs text-gray-400">
+                          Try selecting different categories or clear category filters to see all posts.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-xs text-gray-500 mb-2 p-2 bg-blue-50 rounded border-l-2 border-blue-200">
+                          📊 Showing {filteredAvailableArticles.length} of {availableArticles.length} posts
+                          {selectedCategories.length > 0 && ` from "${selectedCategories.join('", "')}" ${selectedCategories.length === 1 ? 'category' : 'categories'}`}
+                        </div>
+                        {filteredAvailableArticles.map((availableArticle) => (
+                        <FormField
+                          key={availableArticle.id}
+                          control={form.control}
+                          name="detailsPageSpecificPosts"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={availableArticle.id}
+                                className="flex flex-row items-start space-x-3 space-y-0 p-2 border rounded hover:bg-gray-50"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(availableArticle.id)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...(field.value || []), availableArticle.id])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== availableArticle.id
+                                            )
+                                          );
+                                    }}
+                                  />
+                                </FormControl>
+                                <div className="flex-1">
+                                  <FormLabel className="font-normal text-sm leading-tight">
+                                    {availableArticle.title}
+                                  </FormLabel>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Category: {availableArticle.category} | 
+                                    Published: {new Date(availableArticle.publishedDate).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </FormItem>
+                            );
+                          }}
+                        />
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="seo-settings">
@@ -277,7 +639,7 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Meta Description</FormLabel>
-                    <FormControl><Textarea placeholder="Custom meta description for this article" {...field} rows={3} /></FormControl>
+                    <FormControl><Textarea placeholder="Custom meta description for this article" {...field} rows={3}/></FormControl>
                     <FormDescription>Max 160 characters. If blank, article excerpt is used.</FormDescription>
                     <FormMessage />
                   </FormItem>

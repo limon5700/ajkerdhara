@@ -41,6 +41,9 @@ export default function AddArticlePage() {
         articleYoutubeUrl: data.articleYoutubeUrl,
         articleFacebookUrl: data.articleFacebookUrl,
         articleMoreLinksUrl: data.articleMoreLinksUrl,
+        displayPlacements: data.displayPlacements,
+        detailsPageCategories: data.detailsPageCategories,
+        detailsPageSpecificPosts: data.detailsPageSpecificPosts,
       };
       const result = await addNewsArticle(createData);
       if (result) {

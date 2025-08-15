@@ -4,7 +4,6 @@
 import type { Category } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Cpu, Trophy, Briefcase, Globe2, Film, List } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { useEffect, useState } from "react";
 
@@ -14,31 +13,12 @@ interface CategoryFilterProps {
   onSelectCategory: (category: Category | "All") => void;
 }
 
-const categoryIcons: Record<Category | "All", React.ElementType> = {
-  All: List,
-  Technology: Cpu,
-  Sports: Trophy,
-  Business: Briefcase,
-  World: Globe2,
-  Entertainment: Film,
-};
-
-// Mapping from original category names to uiTexts keys
-const categoryUiTextKeys: Record<string, string> = {
-  All: "allCategories",
-  Technology: "technologyCategory",
-  Sports: "sportsCategory",
-  Business: "businessCategory",
-  World: "worldCategory",
-  Entertainment: "entertainmentCategory",
-};
-
 export default function CategoryFilter({
   categories,
   selectedCategory,
   onSelectCategory,
 }: CategoryFilterProps) {
-  const { getUIText, isClient } = useAppContext();
+  const { isClient } = useAppContext();
   const [displayCategories, setDisplayCategories] = useState<(Category | "All")[]>([]);
 
   useEffect(() => {
@@ -46,50 +26,42 @@ export default function CategoryFilter({
     if (isClient) {
       setDisplayCategories(["All", ...safePropCategories]);
     } else {
-      // Fallback for SSR or when isClient is false initially
       setDisplayCategories(["All", ...safePropCategories]);
     }
   }, [isClient, categories]);
 
-
   if (!isClient) {
-    // Render a placeholder or basic version for SSR if categories are not ready
-    // This helps prevent hydration errors if getUIText is not fully ready on initial server render
     const safeCategoriesForSsr = Array.isArray(categories) ? categories : [];
     return (
-      <div className="mb-8 flex flex-wrap gap-2 justify-center">
+      <div className="flex flex-wrap gap-2 justify-center">
         {(["All", ...safeCategoriesForSsr]).map((category) => (
-          <Button key={category} variant="outline" disabled className="border-gray-300 text-gray-600 bg-white">
-            {category} {/* Show raw category name for SSR placeholder */}
+          <Button key={category} variant="plain" disabled className="text-gray-600">
+            {category}
           </Button>
         ))}
       </div>
     );
   }
 
-
   return (
-    <div className="mb-6 flex flex-wrap gap-3 justify-center">
+    <div className="flex flex-wrap gap-2 justify-center">
       {displayCategories.map((category) => {
-        const Icon = categoryIcons[category as Category] || List;
-        const uiTextKey = categoryUiTextKeys[category as string] || category as string;
-        const translatedCategoryName = getUIText(uiTextKey);
+        const displayName = category === "All" ? "All" : category;
         
         return (
           <Button
             key={category}
-            variant={selectedCategory === category ? "default" : "outline"}
+            variant="plain"
             onClick={() => onSelectCategory(category)}
             className={cn(
-              "transition-all duration-200 ease-in-out transform hover:scale-105 font-bold",
+              "transition-all duration-200 ease-in-out font-bold px-2 py-1 cursor-pointer",
               selectedCategory === category 
-                ? "bg-yellow-500 hover:bg-yellow-600 text-black shadow-lg" 
-                : "border-gray-300 text-black bg-white hover:bg-gray-50 hover:border-yellow-300"
+                ? "text-blue-600" 
+                : "text-black hover:text-blue-600"
             )}
             aria-pressed={selectedCategory === category}
           >
-            <Icon className="mr-2 h-4 w-4" />
-            {translatedCategoryName}
+            {displayName}
           </Button>
         );
       })}

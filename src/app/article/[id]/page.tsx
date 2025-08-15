@@ -9,20 +9,54 @@ import { parseISO, formatDistanceToNow } from 'date-fns';
 import { bn } from 'date-fns/locale'; // Import Bengali locale
 import { ArrowLeft, Loader2, Youtube, Facebook, Link as LinkIcon, CalendarDays } from 'lucide-react'; 
 
-import type { NewsArticle, Gadget, LayoutSection, SeoSettings } from '@/lib/types';
+import type { NewsArticle, Gadget, LayoutSection, SeoSettings, Category } from '@/lib/types';
+import { categories as allNewsCategories } from '@/lib/constants';
 import { getArticleById, getActiveGadgetsBySection, getSeoSettings, getRelatedArticles } from '@/lib/data-optimized';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { CategoryBadge } from '@/components/ui/category-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import AdDisplay from '@/components/ads/AdDisplay';
-import { translateText } from '@/ai/flows/translate-text-flow';
+import dynamic from 'next/dynamic';
+
 import { useToast } from "@/hooks/use-toast";
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAppContext } from '@/context/AppContext';
 import RelatedPosts from '@/components/news/RelatedPosts';
+import SidebarArticleCard from '@/components/news/SidebarArticleCard'; // Ensure SidebarArticleCard is imported
 
+
+const DynamicAdDisplay = dynamic(() => import('@/components/ads/AdDisplay'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-32 rounded-lg" />,
+});
+
+const DynamicFooter = dynamic(() => import('@/components/layout/Footer'), {
+  ssr: false,
+  loading: () => <Skeleton className="w-full h-16 rounded-md container mx-auto px-4 mb-4" />,
+});
+const DynamicRelatedPosts = dynamic(() => import('@/components/news/RelatedPosts'), {
+  ssr: false,
+  loading: () => (
+    <div className="mt-12">
+      <Skeleton className="h-8 w-48 mb-6 rounded-md" />
+      <div className="space-y-4">
+        {[...Array(4)].map((_, index) => (
+          <div key={`related-skel-${index}`} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            <div className="flex">
+              <Skeleton className="w-24 h-24 rounded-none" />
+              <div className="p-3 flex-1">
+                <Skeleton className="h-4 w-full mb-2 rounded-md" />
+                <Skeleton className="h-3 w-3/4 rounded-md" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ),
+});
 
 // Helper function to render content with inline ads
 const renderContentWithAds = (
@@ -42,7 +76,7 @@ const renderContentWithAds = (
             if (snippetIndex < articleSpecificSnippets.length) {
                 const snippet = articleSpecificSnippets[snippetIndex];
                 result.push(
-                    <AdDisplay
+                    <DynamicAdDisplay
                         key={`ad-specific-${articleId}-${snippetIndex}`}
                         gadget={{
                             content: snippet,
@@ -60,7 +94,7 @@ const renderContentWithAds = (
             if (!adRendered && defaultGadgetIndex < defaultInlineGadgets.length) {
                 const defaultGadget = defaultInlineGadgets[defaultGadgetIndex];
                  result.push(
-                    <AdDisplay
+                    <DynamicAdDisplay
                         key={`ad-default-${articleId}-${defaultGadget.id}-${defaultGadgetIndex}`}
                         gadget={defaultGadget}
                         className="my-4 inline-ad-widget default-inline-ad"
@@ -81,7 +115,7 @@ export default function ArticlePage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { language, getUIText, isClient } = useAppContext();
+  const { isClient, language: currentLocale, getUIText } = useAppContext();
   const id = params.id as string;
 
   const [article, setArticle] = useState<NewsArticle | null>(null);
@@ -92,12 +126,29 @@ export default function ArticlePage() {
   });
   const [globalSeoSettings, setGlobalSeoSettings] = useState<SeoSettings | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<NewsArticle[]>([]);
-
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTranslating, setIsTranslating] = useState(false);
+  const [sidebarArticles, setSidebarArticles] = useState<NewsArticle[]>([]);
   const [displayTitle, setDisplayTitle] = useState<string>('');
   const [displayContent, setDisplayContent] = useState<string>('');
-  const [translationsCache, setTranslationsCache] = useState<Record<string, { title: string, content: string }>>({});
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationsCache, setTranslationsCache] = useState<Record<string, string>>({});
+  const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All');
+
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Handle category selection
+  const handleSelectCategory = (category: Category | 'All') => {
+    setSelectedCategory(category);
+    if (category !== 'All') {
+      router.push(`/?category=${category}`);
+    } else {
+      router.push('/');
+    }
+  };
+
+  // Handle search
+  const handleSearch = (searchTerm: string) => {
+    router.push(`/?search=${searchTerm}`);
+  };
 
   const fetchArticleAndGadgets = useCallback(async () => {
     if (!id || !isClient) return;
@@ -118,14 +169,38 @@ export default function ArticlePage() {
         setDisplayContent(foundArticle.content); 
         console.log("Article loaded successfully:", foundArticle.title);
 
-        // Fetch related articles
+        // Fetch related articles (article-related placement)
         try {
-          const related = await getRelatedArticles(foundArticle.id, foundArticle.category, 6);
-          setRelatedArticles(related);
-          console.log("Related articles loaded:", related.length);
+          const relatedArticlesResponse = await fetch(`/api/articles?type=details&placement=article-related&category=${encodeURIComponent(foundArticle.category)}&postId=${encodeURIComponent(foundArticle.id)}&t=${Date.now()}`);
+          if (relatedArticlesResponse.ok) {
+            const relatedData = await relatedArticlesResponse.json();
+            const filteredRelatedArticles = (relatedData.articles || []).filter((art: any) => art.id !== foundArticle.id);
+            setRelatedArticles(filteredRelatedArticles);
+            console.log(`Related articles (article-related) loaded for category "${foundArticle.category}" and post "${foundArticle.id}":`, filteredRelatedArticles.length);
+          } else {
+            console.log("Failed to fetch related articles from API");
+            setRelatedArticles([]);
+          }
         } catch (error) {
           console.error("Error fetching related articles:", error);
           setRelatedArticles([]);
+        }
+
+        // Fetch sidebar articles (article-sidebar placement) 
+        try {
+          const sidebarArticlesResponse = await fetch(`/api/articles?type=details&placement=article-sidebar&category=${encodeURIComponent(foundArticle.category)}&postId=${encodeURIComponent(foundArticle.id)}&t=${Date.now()}`);
+          if (sidebarArticlesResponse.ok) {
+            const sidebarData = await sidebarArticlesResponse.json();
+            const filteredSidebarArticles = (sidebarData.articles || []).filter((art: any) => art.id !== foundArticle.id);
+            setSidebarArticles(filteredSidebarArticles);
+            console.log(`Sidebar articles (article-sidebar) loaded for category "${foundArticle.category}" and post "${foundArticle.id}":`, filteredSidebarArticles.length);
+          } else {
+            console.log("Failed to fetch sidebar articles from API");
+            setSidebarArticles([]);
+          }
+        } catch (error) {
+          console.error("Error fetching sidebar articles:", error);
+          setSidebarArticles([]);
         }
 
         const sectionsToFetch: LayoutSection[] = [
@@ -143,61 +218,29 @@ export default function ArticlePage() {
 
       } else {
         console.warn("Article not found for ID:", id);
-        toast({ title: getUIText("error") || "Error", description: getUIText("articleNotFound"), variant: "destructive" });
+        toast({ title: "Error", description: "Article not found", variant: "destructive" });
         router.push('/'); 
       }
     } catch (error) {
       console.error("Failed to fetch article, SEO settings or gadgets:", error);
-      toast({ title: getUIText("error") || "Error", description: "Failed to load article details, settings or ads.", variant: "destructive" });
+      toast({ title: "Error", description: "Failed to load article details, settings or ads.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isClient, toast, getUIText, router]); 
+  }, [id, isClient, toast, router]); 
 
   useEffect(() => {
     fetchArticleAndGadgets();
   }, [fetchArticleAndGadgets]);
 
   const performTranslation = useCallback(async () => {
-    if (!article || !language || !isClient) return;
+    if (!article || !isClient) return;
 
-    if (language === 'en') { 
-      setDisplayTitle(article.title);
-      setDisplayContent(article.content);
-      return;
-    }
-
-    if (translationsCache[language]) {
-      setDisplayTitle(translationsCache[language].title);
-      setDisplayContent(translationsCache[language].content);
-      return;
-    }
-
-    setIsTranslating(true);
-    try {
-      const [titleResult, contentResult] = await Promise.all([
-        translateText({ text: article.title, targetLanguage: language }),
-        translateText({ text: article.content, targetLanguage: language })
-      ]);
-      const newTitle = titleResult.translatedText;
-      const newContent = contentResult.translatedText;
-      setDisplayTitle(newTitle);
-      setDisplayContent(newContent);
-      setTranslationsCache(prev => ({ ...prev, [language]: { title: newTitle, content: newContent } }));
-    } catch (error) {
-      console.error("Error translating article:", error);
-      toast({
-        title: getUIText("translationFailed"),
-        description: getUIText("couldNotTranslateArticle") + (error instanceof Error ? ` ${error.message}` : ''),
-        variant: "destructive",
-      });
-      setDisplayTitle(article.title); 
-      setDisplayContent(article.content); 
-    } finally {
-      setIsTranslating(false);
-    }
-  }, [article, language, toast, getUIText, isClient, translationsCache]);
+    // For now, just set the original content
+    setDisplayTitle(article.title);
+    setDisplayContent(article.content);
+  }, [article, isClient]);
 
   useEffect(() => {
     if (article && isClient) {
@@ -206,7 +249,7 @@ export default function ArticlePage() {
         setDisplayTitle(article.title);
         setDisplayContent(article.content);
     }
-  }, [article, language, isClient, performTranslation]);
+  }, [article, isClient, performTranslation]);
 
   // In renderGadgetsForSection, ensure all gadgets are rendered (no limit)
   const renderGadgetsForSection = (section: LayoutSection, className?: string) => {
@@ -215,7 +258,7 @@ export default function ArticlePage() {
     return (
       <div className={`section-gadgets section-${section}-container ${className || ''}`}>
         {gadgets.map((gadget) => (
-          <AdDisplay key={gadget.id} gadget={gadget} className="mb-4" /> 
+          <DynamicAdDisplay key={gadget.id} gadget={gadget} className="mb-4" /> 
         ))}
       </div>
     );
@@ -237,11 +280,11 @@ export default function ArticlePage() {
       "dateModified": article.publishedDate, 
       "author": {
         "@type": "Organization", 
-        "name": globalSeoSettings.ogSiteName || "AjkerDhara"
+        "name": globalSeoSettings.ogSiteName || "Clypio"
       },
       "publisher": {
         "@type": "Organization",
-        "name": globalSeoSettings.ogSiteName || "AjkerDhara",
+        "name": globalSeoSettings.ogSiteName || "Clypio",
         "logo": {
           "@type": "ImageObject",
           "url": `${siteUrl}/logo.png` 
@@ -258,8 +301,7 @@ export default function ArticlePage() {
     );
   };
 
-
-   if (!isClient && !id) {
+  if (!isClient && !id) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         <Skeleton className="h-16 w-full" />
@@ -340,8 +382,7 @@ export default function ArticlePage() {
             </aside>
           </div>
         </main>
-        <Skeleton className="h-16 w-full mt-6 rounded-md container mx-auto px-4 mb-4" />
-        <Footer />
+        <DynamicFooter />
       </div>
     );
   }
@@ -362,7 +403,7 @@ export default function ArticlePage() {
             </Button>
           </div>
         </main>
-        <Footer />
+        <DynamicFooter />
       </div>
     );
   }
@@ -372,7 +413,7 @@ export default function ArticlePage() {
   let relativeDate = "N/A";
   if (isClient && article?.publishedDate) {
     try {
-      relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true, locale: language === 'bn' ? bn : undefined });
+      relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true, locale: currentLocale === 'bn' ? bn : undefined });
     } catch (e) {
       try {
         relativeDate = new Date(article.publishedDate).toLocaleDateString();
@@ -386,27 +427,46 @@ export default function ArticlePage() {
       <JsonLd />
       <div className="flex flex-col min-h-screen bg-white text-black font-sans">
         {renderGadgetsForSection('header-logo-area', 'container mx-auto px-4 pt-4')}
-        <Header onSearch={(term) => router.push(`/?search=${term}`)} />
+        <Header 
+          onSearch={handleSearch}
+          categories={allNewsCategories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleSelectCategory}
+        />
         {renderGadgetsForSection('below-header', 'container mx-auto px-4 pt-4')}
+        
                  <main className="flex-grow container mx-auto px-4 py-8">
            <div className="flex flex-col lg:flex-row gap-8">
-               {/* Left Side - Article Content */}
-               <div className="w-full lg:w-1/3 order-first lg:order-none">
-                   {/* Back Button */}
-                   <Button 
-                     variant="outline" 
-                     onClick={() => router.back()} 
-                     className="mb-6 group bg-white border-gray-300 text-black hover:bg-gray-50 hover:border-yellow-500 transition-colors"
-                   >
-                     <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                     {getUIText("backToNews")}
-                   </Button>
-                   
+               {/* Left Side - Article Image and Content */}
+               <div className="w-full lg:w-2/3 order-first lg:order-none">
                    {/* Top Ads */}
                    {renderGadgetsForSection('article-top', 'mb-6')}
                    
+                   {/* Article Image Card - Now on the left side */}
+                   <div className="rounded-lg overflow-hidden mb-6">
+                     {article.imageUrl && (
+                       <div className="relative w-full h-96 lg:h-[500px]">
+                         <Image 
+                           src={article.imageUrl || "/placeholder-image.svg"} 
+                           alt={isTranslating && !displayTitle ? (getUIText("loading") || "Loading...") : displayTitle || article.title} 
+                           fill={true} 
+                           style={{objectFit:"cover"}} 
+                           priority 
+                           data-ai-hint={article.dataAiHint || "news article detail"}
+                         />
+                       </div>
+                     )}
+                     
+                     {/* Image Caption */}
+                     <div className="p-4">
+                       <p className="text-sm text-gray-600 italic">
+                         {displayTitle || article.title}
+                       </p>
+                     </div>
+                   </div>
+                   
                    {/* Article Content Card */}
-                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-lg">
+                   <div className="rounded-lg overflow-hidden">
                      {/* Article Header */}
                      <div className="p-6">
                        {/* Article Title */}
@@ -506,188 +566,44 @@ export default function ArticlePage() {
                    {renderGadgetsForSection('article-bottom', 'mt-6')}
                </div>
                
-               {/* Middle - Related Posts */}
-               <div className="w-full lg:w-1/3 order-last lg:order-none">
-                   {/* Related Posts Section */}
-                   {isLoading ? (
-                     <div className="mt-12">
-                       <Skeleton className="h-8 w-48 mb-6 rounded-md" />
-                       <div className="space-y-4">
-                         {[...Array(4)].map((_, index) => (
-                           <div key={`related-skel-${index}`} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                             <div className="flex">
-                               <Skeleton className="w-24 h-24 rounded-none" />
-                               <div className="p-3 flex-1">
-                                 <Skeleton className="h-4 w-full mb-2 rounded-md" />
-                                 <Skeleton className="h-3 w-3/4 rounded-md" />
-                               </div>
-                             </div>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   ) : (
-                     <div className="mt-12">
-                       <h2 className="text-xl font-bold text-black mb-6 border-b border-gray-200 pb-2">Related Posts</h2>
-                       <div className="space-y-4">
-                         {relatedArticles.slice(0, 4).map((relatedArticle) => {
-                           let relativeDate = "N/A";
-                           if (isClient && relatedArticle.publishedDate) {
-                             try {
-                               relativeDate = formatDistanceToNow(parseISO(relatedArticle.publishedDate), { 
-                                 addSuffix: true, 
-                                 locale: language === 'bn' ? bn : undefined 
-                               });
-                             } catch (e) {
-                               try {
-                                 relativeDate = new Date(relatedArticle.publishedDate).toLocaleDateString();
-                               } catch {}
-                             }
-                           }
-
-                           return (
-                             <Link key={relatedArticle.id} href={`/article/${relatedArticle.id}`} className="block">
-                               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer">
-                                 <div className="flex">
-                                   {relatedArticle.imageUrl && (
-                                     <div className="relative w-24 h-24 flex-shrink-0">
-                                       <Image
-                                         src={relatedArticle.imageUrl || "/placeholder-image.svg"}
-                                         alt={relatedArticle.title}
-                                         fill={true}
-                                         style={{objectFit:"cover"}}
-                                         className="transition-transform duration-300 hover:scale-105"
-                                         data-ai-hint={`related article: ${relatedArticle.title}`}
-                                       />
-                                     </div>
-                                   )}
-                                   <div className="p-3 flex-1">
-                                     <div className="flex items-center text-xs text-gray-500 space-x-2 mb-1">
-                                       <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 border-0 font-semibold">
-                                         {relatedArticle.category}
-                                       </Badge>
-                                       <div className="flex items-center">
-                                         <CalendarDays className="mr-1 h-3 w-3" />
-                                         <span suppressHydrationWarning>{relativeDate}</span>
-                                       </div>
-                                     </div>
-                                     <h3 className="text-sm font-bold text-black line-clamp-2 leading-tight hover:text-yellow-600 transition-colors">
-                                       {relatedArticle.title}
-                                     </h3>
-                                   </div>
-                                 </div>
-                               </div>
-                             </Link>
-                           );
-                         })}
-                       </div>
-                     </div>
-                   )}
-               </div>
-               
-               {/* Right Side - Article Image */}
-               <div className="w-full lg:w-1/3 order-last lg:order-none">
-                   {/* Article Image Card */}
-                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-lg sticky top-8">
-                     {article.imageUrl && (
-                       <div className="relative w-full h-96 lg:h-[500px]">
-                         <Image 
-                           src={article.imageUrl || "/placeholder-image.svg"} 
-                           alt={isTranslating && !displayTitle ? (getUIText("loading") || "Loading...") : displayTitle || article.title} 
-                           fill={true} 
-                           style={{objectFit:"cover"}} 
-                           priority 
-                           data-ai-hint={article.dataAiHint || "news article detail"}
-                         />
-                       </div>
-                     )}
-                     
-                     {/* Image Caption */}
-                     <div className="p-4">
-                       <p className="text-sm text-gray-600 italic">
-                         {displayTitle || article.title}
-                       </p>
-                     </div>
-                   </div>
-                   
+               {/* Right Column - Now only for Sidebar Content */}
+               <div className="w-full lg:w-1/3 order-last space-y-6">
                    {/* Right Sidebar Gadgets */}
                    <div className="mt-6 space-y-6">
                      {renderGadgetsForSection('sidebar-right')}
-                     {activeGadgets['sidebar-right']?.length === 0 && (
-                       <div className="bg-white border border-gray-200 p-4 rounded-lg">
-                         <h3 className="font-bold text-black mb-2 text-sm">Right Sidebar</h3>
-                         <p className="text-xs text-gray-500">No content available.</p>
-                       </div>
-                     )}
                    </div>
+               
+                   {/* Sidebar Articles Section */}
+                   {isLoading ? (
+                     <DynamicRelatedPosts articles={[]} currentArticleId={id} />
+                   ) : sidebarArticles.length > 0 ? (
+                     <div className="space-y-4">
+                       <h3 className="text-lg font-bold text-black mb-4 pb-2">Sidebar Articles</h3>
+                       {sidebarArticles.slice(0, 4).map((sidebarArticle) => (
+                         <SidebarArticleCard key={`sidebar-${sidebarArticle.id}`} article={sidebarArticle} />
+                       ))}
+                     </div>
+                   ) : null}
                </div>
            </div>
          </main>
          
-         {/* Similar Posts Section - Full Width */}
+         {/* Related Posts Section - Full Width */}
          {relatedArticles.length > 0 && (
-           <div className="mt-12 bg-gray-50 py-12">
+           <div className="mt-12 py-12">
              <div className="container mx-auto px-4">
-               <h2 className="text-2xl font-bold text-black mb-6 border-b border-gray-200 pb-2">Similar Posts</h2>
+               <h2 className="text-2xl font-bold text-black mb-6 pb-2">Related Articles</h2>
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                 {relatedArticles.slice(0, 8).map((relatedArticle) => {
-                   let relativeDate = "N/A";
-                   if (isClient && relatedArticle.publishedDate) {
-                     try {
-                       relativeDate = formatDistanceToNow(parseISO(relatedArticle.publishedDate), { 
-                         addSuffix: true, 
-                         locale: language === 'bn' ? bn : undefined 
-                       });
-                     } catch (e) {
-                       try {
-                         relativeDate = new Date(relatedArticle.publishedDate).toLocaleDateString();
-                       } catch {}
-                     }
-                   }
-
-                   return (
-                     <Link key={`similar-${relatedArticle.id}`} href={`/article/${relatedArticle.id}`} className="block">
-                       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 cursor-pointer">
-                         {relatedArticle.imageUrl && (
-                           <div className="relative w-full h-48">
-                             <Image
-                               src={relatedArticle.imageUrl || "/placeholder-image.svg"}
-                               alt={relatedArticle.title}
-                               fill={true}
-                               style={{objectFit:"cover"}}
-                               className="transition-transform duration-300 hover:scale-105"
-                               data-ai-hint={`similar article: ${relatedArticle.title}`}
-                             />
-                           </div>
-                         )}
-                         <div className="p-4">
-                           <div className="flex items-center text-xs text-gray-500 space-x-2 mb-2">
-                             <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 border-0 font-semibold">
-                               {relatedArticle.category}
-                             </Badge>
-                             <div className="flex items-center">
-                               <CalendarDays className="mr-1 h-3 w-3" />
-                               <span suppressHydrationWarning>{relativeDate}</span>
-                             </div>
-                           </div>
-                           <h3 className="text-lg font-bold text-black line-clamp-2 leading-tight hover:text-yellow-600 transition-colors mb-2">
-                             {relatedArticle.title}
-                           </h3>
-                           <p className="text-sm text-gray-600 line-clamp-3">
-                             {relatedArticle.excerpt || "Read more about this story..."}
-                           </p>
-                         </div>
-                       </div>
-                     </Link>
-                   );
-                 })}
+                 {relatedArticles.slice(0, 8).map((relatedArticle) => (
+                   <SidebarArticleCard key={`related-${relatedArticle.id}`} article={relatedArticle} />
+                 ))}
                </div>
              </div>
            </div>
          )}
          
         {renderGadgetsForSection('footer', 'container mx-auto px-4 pt-4')}
-        <Footer />
+        <DynamicFooter />
       </div>
     </>
   );
