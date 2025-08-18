@@ -2,13 +2,13 @@
 
 import type { NewsArticle } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { HeroImage } from "@/components/ui/optimized-image";
 import { Badge } from "@/components/ui/badge";
 import { CategoryBadge } from "@/components/ui/category-badge";
-import { CalendarDays, ArrowRight } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { bn } from 'date-fns/locale';
+
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
 import Image from 'next/image'; // Import Next.js Image component
@@ -18,7 +18,7 @@ interface FeaturedArticleCardProps {
 }
 
 export default function FeaturedArticleCard({ article }: FeaturedArticleCardProps) {
-  const { getUIText, isClient, language: currentLocale } = useAppContext();
+  const { getUIText, isClient } = useAppContext();
 
   // Handle SSR and client-side rendering
   const displayTitle = article.title;
@@ -28,14 +28,13 @@ export default function FeaturedArticleCard({ article }: FeaturedArticleCardProp
   // Format relative date
   const relativeDate = isClient && article.publishedDate ? 
     formatDistanceToNow(parseISO(article.publishedDate), { 
-      addSuffix: true, 
-      locale: currentLocale === 'bn' ? bn : undefined 
+      addSuffix: true
     }) : 
     '';
 
   return (
     <Link href={`/article/${article.id}`} className="block">
-      <div className="relative overflow-hidden bg-white hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+      <div className="relative overflow-hidden bg-white">
         <div className="relative w-full h-96">
           <Image // Changed from HeroImage to Image
             src={article.imageUrl || "/placeholder-image.svg"}
@@ -58,18 +57,10 @@ export default function FeaturedArticleCard({ article }: FeaturedArticleCardProp
                 <span>{relativeDate}</span>
               </div>
             </div>
-            <CardTitle className="text-4xl font-bold text-white leading-tight mb-3 drop-shadow-lg">{displayTitle}</CardTitle>
+            <CardTitle className="text-4xl font-bold text-white leading-tight mb-3 drop-shadow-lg hover:underline cursor-pointer">{displayTitle}</CardTitle>
             <CardDescription className="text-lg text-gray-200 leading-relaxed drop-shadow-md">{displayExcerpt}</CardDescription>
             
-            <Button
-              variant="default"
-              size="lg"
-              className="mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-transform duration-200 hover:scale-105"
-              aria-label={`${seeMoreText} ${displayTitle}`}
-            >
-              {seeMoreText}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+
           </div>
         </div>
       </div>

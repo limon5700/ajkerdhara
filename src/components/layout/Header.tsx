@@ -168,10 +168,10 @@ export default function Header({ onSearch, categories = [], selectedCategory = "
         {/* Breaking news ticker */}
         <div className="py-2 border-t border-gray-200 bg-red-50">
           <div className="flex items-center gap-4 text-sm">
-            <span className="font-bold text-red-600">BREAKING:</span>
+            <span className="font-bold text-red-600">BREAKING NEWS:</span>
             <div className="flex-1 overflow-hidden">
               <div className="animate-marquee whitespace-nowrap">
-                <span className="text-black">Major developments in Gaza conflict • International response continues • Humanitarian aid reaches affected areas</span>
+                <span className="text-black">Our news website is committed to delivering reliable and updated information to readers at all times. The site rules are reviewed and updated regularly so that visitors can follow accurate usage guidelines. The latest policy and rule update date will be displayed in the header, making it easy for everyone to know about any changes. In addition, each news post clearly shows both the published time and the last updated time, so readers can understand when new information has been added or corrections have been made. Transparency and timely reporting are our top priorities to maintain reader trust.</span>
               </div>
             </div>
           </div>

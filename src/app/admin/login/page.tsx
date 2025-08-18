@@ -112,57 +112,72 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md shadow-xl">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="w-full max-w-md">
+        <Card className="shadow-xl bg-white">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">Clypio - Admin</CardTitle>
-          <CardDescription>Please enter your credentials to access the admin panel.</CardDescription>
+          <CardTitle className="text-3xl font-bold text-blue-600">Clypio - Admin</CardTitle>
+          <CardDescription className="text-black">Sign in to access the admin panel</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {serverConfigError && (
-            <Alert variant="destructive" className="mb-4">
+          {error && (
+            <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Server Configuration Issue</AlertTitle>
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {serverConfigError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Server Configuration Error</AlertTitle>
               <AlertDescription>{serverConfigError}</AlertDescription>
             </Alert>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username" className="text-black">Username</Label>
               <Input
                 id="username"
                 name="username"
                 type="text"
-                placeholder="admin_username"
                 value={formData.username}
                 onChange={handleChange}
                 required
-                className="bg-input"
+                className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                placeholder="Enter your username"
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-black">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="bg-input"
+                className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                placeholder="Enter your password"
               />
             </div>
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Login Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isLoading ? "Logging in..." : "Login"}
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </form>
           <div className="mt-6">
@@ -186,10 +201,11 @@ export default function LoginPage() {
             )}
           </div>
         </CardContent>
-        <CardFooter className="text-center text-xs text-muted-foreground">
-           © {new Date().getFullYear()} Clypio
-        </CardFooter>
+        <CardFooter className="text-center text-xs text-black">
+            <p>Protected by secure authentication. Only authorized users can access.</p>
+          </CardFooter>
       </Card>
+      </div>
     </div>
   );
 }

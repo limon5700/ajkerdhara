@@ -1,25 +1,7 @@
 
-import type { NewsArticle, Category, Permission } from './types';
+import type { NewsArticle, Category, Permission, PlacementConfig, UnifiedPlacement, PlacementSize } from './types';
 
-export interface LanguageOption {
-  value: string;
-  label: string;
-}
-
-export const languageOptions: LanguageOption[] = [
-  { value: 'bn', label: 'Bengali (বাংলা)' },
-  { value: 'en', label: 'English' },
-  { value: 'hi', label: 'Hindi (हिन्दी)' },
-  { value: 'es', label: 'Spanish (Español)' },
-  { value: 'fr', label: 'French (Français)' },
-  { value: 'ar', label: 'Arabic (العربية)' },
-  { value: 'de', label: 'German (Deutsch)' },
-  { value: 'ja', label: 'Japanese (日本語)' },
-  { value: 'pt', label: 'Portuguese (Português)' },
-  { value: 'ru', label: 'Russian (Русский)' },
-];
-
-export const defaultLanguage: string = 'bn'; 
+export const defaultLanguage: string = 'en'; 
 
 export const uiTexts: Record<string, Record<string, string>> = {
   en: {
@@ -35,21 +17,13 @@ export const uiTexts: Record<string, Record<string, string>> = {
     seeMore: "See More",
     backToNews: "Back to News",
     articleNotFound: "Article not found.",
-    translationSuccessful: "Translation Successful",
-    articleTranslatedTo: "Article translated to",
-    translationFailed: "Translation Failed",
-    couldNotTranslateArticle: "Could not translate the article. Please try again.",
-    displayingOriginal: "Displaying Original",
-    showingOriginalContent: "Showing the original article content.",
-    translating: "Translating...",
-    translateContent: "Translate Content",
-    showOriginal: "Show Original",
+
     footerReserved: "All rights reserved.",
     footerPoweredBy: "Powered by Clypio",
     theme: "Theme",
     lightTheme: "Light",
     darkTheme: "Dark",
-    language: "Language",
+
     faq: "FAQ",
     termsAndConditions: "Terms & Conditions",
     faqTitle: "Frequently Asked Questions",
@@ -117,101 +91,7 @@ export const uiTexts: Record<string, Record<string, string>> = {
     userAndRoleManagement: "User & Role Mgmt",
     activityLog: "Activity Log",
   },
-  bn: {
-    appName: "ক্লিপিও",
-    appSubtitle: "এক নিমিষে বিশ্বের গল্প",
-    searchPlaceholder: "খবর অনুসন্ধান করুন...",
-    allCategories: "সব",
-    technologyCategory: "প্রযুক্তি",
-    sportsCategory: "খেলাধুলা",
-    businessCategory: "ব্যবসা",
-    worldCategory: "বিশ্ব",
-    entertainmentCategory: "বিনোদন",
-    seeMore: "আরও দেখুন",
-    backToNews: " খবরে ফিরুন",
-    articleNotFound: "নিবন্ধটি খুঁজে পাওয়া যায়নি।",
-    translationSuccessful: "অনুবাদ সফল হয়েছে",
-    articleTranslatedTo: "নিবন্ধটি অনুবাদ করা হয়েছে",
-    translationFailed: "অনুবাদ ব্যর্থ হয়েছে",
-    couldNotTranslateArticle: "নিবন্ধটি অনুবাদ করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
-    displayingOriginal: "মূল বিষয়বস্তু প্রদর্শিত হচ্ছে",
-    showingOriginalContent: "নিবন্ধটির মূল বিষয়বস্তু দেখানো হচ্ছে।",
-    translating: "অনুবাদ করা হচ্ছে...",
-    translateContent: "বিষয়বস্তু অনুবাদ করুন",
-    showOriginal: "মূল দেখান",
-    footerReserved: "সর্বস্বত্ব সংরক্ষিত।",
-    footerPoweredBy: "ক্লিপিও দ্বারা চালিত",
-    theme: "থিম",
-    lightTheme: "লাইট",
-    darkTheme: "ডার্ক",
-    language: "ভাষা",
-    faq: "প্রশ্নাবলী",
-    termsAndConditions: "শর্তাবলী",
-    faqTitle: "সাধারণ জিজ্ঞাস্য প্রশ্নাবলী",
-    termsTitle: "শর্তাবলী এবং নিয়মাবলী",
-    loading: "লোড হচ্ছে...",
-    noArticlesFound: "আপনার মানদণ্ডের সাথে মিলে যাওয়া কোনও সংবাদ নিবন্ধ পাওয়া যায়নি।",
-    articleTitleLabel: "শিরোনাম",
-    articleContentLabel: "বিষয়বস্তু",
-    publishedDateLabel: "প্রকাশিত",
-    error: "ত্রুটি",
-    seoSiteTitleLabel: "সাইটের শিরোনাম",
-    seoMetaDescriptionLabel: "মেটা বর্ণনা",
-    seoMetaKeywordsLabel: "মেটা কীওয়ার্ড (কমা দ্বারা পৃথক)",
-    seoFaviconUrlLabel: "ফ্যাভিকন ইউআরএল",
-    seoOgSiteNameLabel: "ওপেন গ্রাফ সাইটের নাম",
-    seoOgLocaleLabel: "ওপেন গ্রাফ লোকেল (যেমন, bn_BD)",
-    seoOgTypeLabel: "ওপেন গ্রাফ প্রকার (যেমন, website)",
-    seoTwitterCardLabel: "টুইটার কার্ড প্রকার",
-    seoTwitterSiteLabel: "টুইটার সাইট হ্যান্ডেল (যেমন, @username)",
-    seoTwitterCreatorLabel: "টুইটার ক্রিয়েটর হ্যান্ডেল (ঐচ্ছিক)",
-    seoSettingsSaved: "এসইও সেটিংস সফলভাবে সংরক্ষণ করা হয়েছে।",
-    seoSettingsError: "এসইও সেটিংস সংরক্ষণ করতে ত্রুটি।",
-    articleMetaTitleLabel: "মেটা শিরোনাম (এসইও)",
-    articleMetaDescriptionLabel: "মেটা বর্ণনা (এসইও)",
-    articleMetaKeywordsLabel: "মেটা কীওয়ার্ড (এসইও, কমা দ্বারা পৃথক)",
-    articleOgTitleLabel: "ওপেন গ্রাফ শিরোনাম (সোশ্যাল)",
-    articleOgDescriptionLabel: "ওপেন গ্রাফ বর্ণনা (সোশ্যাল)",
-    articleOgImageLabel: "ওপেন গ্রাফ ছবির ইউআরএল (সোশ্যাল)",
-    articleCanonicalUrlLabel: "ক্যানোনিকাল ইউআরএল (অ্যাডভান্সড)",
-    // User Roles related texts - Bengali
-    manageUsers: "ব্যবহারকারী ও ভূমিকা পরিচালনা",
-    username: "ব্যবহারকারীর নাম",
-    email: "ইমেইল",
-    password: "পাসওয়ার্ড",
-    roles: "ভূমিকা",
-    userActive: "ব্যবহারকারী সক্রিয়",
-    addUser: "ব্যবহারকারী যোগ করুন",
-    editUser: "ব্যবহারকারী সম্পাদনা করুন",
-    deleteUser: "ব্যবহারকারী মুছুন",
-    confirmDeleteUser: "আপনি কি সত্যিই এই ব্যবহারকারীকে মুছতে চান?",
-    userCreated: "ব্যবহারকারী সফলভাবে তৈরি করা হয়েছে।",
-    userUpdated: "ব্যবহারকারী সফলভাবে আপডেট করা হয়েছে।",
-    userDeleted: "ব্যবহারকারী সফলভাবে মুছে ফেলা হয়েছে।",
-    manageRoles: "ভূমিকা পরিচালনা করুন",
-    roleName: "ভূমিকার নাম",
-    roleDescription: "বর্ণনা (ঐচ্ছিক)",
-    permissions: "অনুমতিসমূহ",
-    addRole: "ভূমিকা যোগ করুন",
-    editRole: "ভূমিকা সম্পাদনা করুন",
-    deleteRole: "ভূমিকা মুছুন",
-    confirmDeleteRole: "আপনি কি সত্যিই এই ভূমিকাটি মুছতে চান? এটি সমস্ত ব্যবহারকারীর কাছ থেকে এটিকে সরিয়ে ফেলবে।",
-    roleCreated: "ভূমিকা সফলভাবে তৈরি করা হয়েছে।",
-    roleUpdated: "ভূমিকা সফলভাবে আপডেট করা হয়েছে।",
-    roleDeleted: "ভূমিকা সফলভাবে মুছে ফেলা হয়েছে।",
-    cancel: "বাতিল করুন",
-    save: "সংরক্ষণ করুন",
-    viewAdminDashboardPermission: "অ্যাডমিন ড্যাশবোর্ড দেখুন",
-    manageArticlesPermission: "নিবন্ধ পরিচালনা করুন",
-    publishArticlesPermission: "নিবন্ধ প্রকাশ করুন",
-    manageUsersPermission: "ব্যবহারকারী পরিচালনা করুন",
-    manageRolesPermission: "ভূমিকা পরিচালনা করুন",
-    manageLayoutGadgetsPermission: "লেআউট/গ্যাজেট পরিচালনা করুন",
-    manageSeoGlobalPermission: "গ্লোবাল এসইও পরিচালনা করুন",
-    manageSettingsPermission: "সাইট সেটিংস পরিচালনা করুন",
-    userAndRoleManagement: "ব্যবহারকারী ও ভূমিকা",
-    activityLog: "কার্যকলাপ লগ",
-  },
+
 };
 
 export const categories: Category[] = ["Technology", "Sports", "Business", "World", "Entertainment"];
@@ -320,3 +200,837 @@ export const availablePermissions: Permission[] = [
   'manage_seo_global',
   'manage_settings',
 ];
+
+// Unified placement configurations for consistent sizing between articles and ads
+export const UNIFIED_PLACEMENTS: PlacementConfig[] = [
+  // Homepage Placements
+  {
+    placement: 'homepage-hero',
+    category: 'homepage',
+    description: 'Above the main hero section',
+    size: 'full-width',
+    responsive: {
+      mobile: 'medium',
+      tablet: 'large',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'homepage-top',
+    category: 'homepage',
+    description: 'At the very top of homepage',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'homepage-latest-posts',
+    category: 'homepage',
+    description: 'Between latest posts section',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'homepage-more-headlines',
+    category: 'homepage',
+    description: 'Between more headlines section',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'homepage-content-bottom',
+    category: 'homepage',
+    description: 'Below main content area',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'homepage-article-interstitial',
+    category: 'homepage',
+    description: 'Between article blocks',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'homepage-sidebar-top',
+    category: 'homepage',
+    description: 'Top of homepage sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'homepage-sidebar-middle',
+    category: 'homepage',
+    description: 'Middle of homepage sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'homepage-sidebar-bottom',
+    category: 'homepage',
+    description: 'Bottom of homepage sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'homepage-category-banner',
+    category: 'homepage',
+    description: 'Category-specific banner area',
+    size: 'large',
+    responsive: {
+      mobile: 'medium',
+      tablet: 'large',
+      desktop: 'large'
+    }
+  },
+  {
+    placement: 'homepage-breaking-news',
+    category: 'homepage',
+    description: 'Breaking news ticker area',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+
+  // Article Details Page Placements
+  {
+    placement: 'article-top',
+    category: 'details',
+    description: 'Above article content',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'article-bottom',
+    category: 'details',
+    description: 'Below article content',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'article-related',
+    category: 'details',
+    description: 'Between related articles',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'article-sidebar-left',
+    category: 'details',
+    description: 'Left sidebar of article',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'article-sidebar-right',
+    category: 'details',
+    description: 'Right sidebar of article',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'article-details-page',
+    category: 'details',
+    description: 'Main article content area',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'article-details-sidebar',
+    category: 'details',
+    description: 'Article details sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'article-inline',
+    category: 'details',
+    description: 'Inline within article text',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'article-comments-top',
+    category: 'details',
+    description: 'Above comments section',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'article-comments-bottom',
+    category: 'details',
+    description: 'Below comments section',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'article-social-share',
+    category: 'details',
+    description: 'Social sharing buttons area',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'article-author-bio',
+    category: 'details',
+    description: 'Author biography section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+
+  // Category Page Placements
+  {
+    placement: 'category-header',
+    category: 'category',
+    description: 'Category page header area',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'category-top',
+    category: 'category',
+    description: 'Top of category listing',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'category-middle',
+    category: 'category',
+    description: 'Middle of category posts',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'category-bottom',
+    category: 'category',
+    description: 'Bottom of category listing',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'category-sidebar',
+    category: 'category',
+    description: 'Category page sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'category-pagination',
+    category: 'category',
+    description: 'Above pagination controls',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+
+  // Search Results Placements
+  {
+    placement: 'search-results-top',
+    category: 'search',
+    description: 'Above search results',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'search-results-bottom',
+    category: 'search',
+    description: 'Below search results',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'search-results-sidebar',
+    category: 'search',
+    description: 'Search results sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'search-no-results',
+    category: 'search',
+    description: 'When no results found',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+
+  // Header/Footer Placements
+  {
+    placement: 'header-logo-area',
+    category: 'header',
+    description: 'Logo area in header',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'below-header',
+    category: 'header',
+    description: 'Below header navigation',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'header-top-banner',
+    category: 'header',
+    description: 'Top banner above header',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'header-announcement',
+    category: 'header',
+    description: 'Announcement bar area',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'footer-top',
+    category: 'footer',
+    description: 'Top of footer area',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'footer-middle',
+    category: 'footer',
+    description: 'Middle of footer content',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'footer-bottom',
+    category: 'footer',
+    description: 'Bottom of footer',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'footer-newsletter',
+    category: 'footer',
+    description: 'Newsletter signup area',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+
+  // Sidebar Placements
+  {
+    placement: 'sidebar-left',
+    category: 'sidebar',
+    description: 'Left sidebar general',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-right',
+    category: 'sidebar',
+    description: 'Right sidebar general',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-must-read',
+    category: 'sidebar',
+    description: 'Must-read section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-popular',
+    category: 'sidebar',
+    description: 'Popular posts section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-trending',
+    category: 'sidebar',
+    description: 'Trending topics section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-category-list',
+    category: 'sidebar',
+    description: 'Category listing section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-tag-cloud',
+    category: 'sidebar',
+    description: 'Tag cloud section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-about',
+    category: 'sidebar',
+    description: 'About section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'sidebar-contact',
+    category: 'sidebar',
+    description: 'Contact information',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+
+  // Special Content Placements
+  {
+    placement: 'content-break',
+    category: 'content',
+    description: 'Content break points',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'content-interstitial',
+    category: 'content',
+    description: 'Between content blocks',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'content-highlight',
+    category: 'content',
+    description: 'Highlighted content area',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'content-summary',
+    category: 'content',
+    description: 'Content summary section',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+
+  // Mobile-Specific Placements
+  {
+    placement: 'mobile-sticky-bottom',
+    category: 'mobile',
+    description: 'Sticky bottom on mobile',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'mobile-interstitial',
+    category: 'mobile',
+    description: 'Mobile interstitial ads',
+    size: 'medium',
+    responsive: {
+      mobile: 'medium',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'mobile-notification',
+    category: 'mobile',
+    description: 'Mobile notification area',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+
+  // Video/Media Placements
+  {
+    placement: 'video-player-top',
+    category: 'media',
+    description: 'Above video player',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'video-player-bottom',
+    category: 'media',
+    description: 'Below video player',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'video-player-sidebar',
+    category: 'media',
+    description: 'Video player sidebar',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'gallery-top',
+    category: 'media',
+    description: 'Above image gallery',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'gallery-bottom',
+    category: 'media',
+    description: 'Below image gallery',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'gallery-interstitial',
+    category: 'media',
+    description: 'Between gallery images',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+
+  // Newsletter/Subscription Placements
+  {
+    placement: 'newsletter-signup',
+    category: 'subscription',
+    description: 'Newsletter signup form',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'subscription-popup',
+    category: 'subscription',
+    description: 'Subscription popup trigger',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  },
+  {
+    placement: 'subscription-banner',
+    category: 'subscription',
+    description: 'Subscription banner',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+
+  // Error Page Placements
+  {
+    placement: 'error-404',
+    category: 'error',
+    description: '404 error page',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'error-500',
+    category: 'error',
+    description: '500 error page',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'error-maintenance',
+    category: 'error',
+    description: 'Maintenance page',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+
+  // Loading/Transition Placements
+  {
+    placement: 'loading-screen',
+    category: 'transition',
+    description: 'Loading screen overlay',
+    size: 'full-width',
+    responsive: {
+      mobile: 'full-width',
+      tablet: 'full-width',
+      desktop: 'full-width'
+    }
+  },
+  {
+    placement: 'page-transition',
+    category: 'transition',
+    description: 'Page transition area',
+    size: 'medium',
+    responsive: {
+      mobile: 'small',
+      tablet: 'medium',
+      desktop: 'medium'
+    }
+  },
+  {
+    placement: 'skeleton-loading',
+    category: 'transition',
+    description: 'Skeleton loading area',
+    size: 'small',
+    responsive: {
+      mobile: 'small',
+      tablet: 'small',
+      desktop: 'small'
+    }
+  }
+];
+
+// Helper function to get placement config by placement name
+export const getPlacementConfig = (placement: UnifiedPlacement): PlacementConfig | undefined => {
+  return UNIFIED_PLACEMENTS.find(config => config.placement === placement);
+};
+
+// Helper function to get placements by category
+export const getPlacementsByCategory = (category: PlacementConfig['category']): PlacementConfig[] => {
+  return UNIFIED_PLACEMENTS.filter(config => config.category === category);
+};
+
+// Helper function to get placements by size
+export const getPlacementsBySize = (size: PlacementSize): PlacementConfig[] => {
+  return UNIFIED_PLACEMENTS.filter(config => config.size === size);
+};

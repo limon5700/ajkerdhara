@@ -86,8 +86,8 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{getUIText("username")}</FormLabel>
-              <FormControl><Input placeholder="Enter username" {...field} /></FormControl>
+              <FormLabel className="text-black">{getUIText("username")}</FormLabel>
+              <FormControl><Input placeholder="Enter username" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -97,8 +97,8 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{getUIText("email")}</FormLabel>
-              <FormControl><Input type="email" placeholder="user@example.com" {...field} /></FormControl>
+              <FormLabel className="text-black">{getUIText("email")}</FormLabel>
+              <FormControl><Input type="email" placeholder="user@example.com" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -108,8 +108,8 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{getUIText("password")}{user ? " (Leave blank to keep current)" : ""}</FormLabel>
-              <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+              <FormLabel className="text-black">{getUIText("password")}{user ? " (Leave blank to keep current)" : ""}</FormLabel>
+              <FormControl><Input type="password" placeholder="••••••••" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -119,8 +119,8 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
           name="confirmPassword"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Confirm Password {user && !form.getValues("password") ? "(Leave blank to keep current)" : ""}</FormLabel>
-              <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
+              <FormLabel className="text-black">Confirm Password {user && !form.getValues("password") ? "(Leave blank to keep current)" : ""}</FormLabel>
+              <FormControl><Input type="password" placeholder="••••••••" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -131,8 +131,8 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
           name="roles"
           render={() => (
             <FormItem>
-              <FormLabel>{getUIText("roles")}</FormLabel>
-              <FormDescription>Assign roles to this user.</FormDescription>
+              <FormLabel className="text-black">{getUIText("roles")}</FormLabel>
+              <FormDescription className="text-black">Assign roles to this user.</FormDescription>
               <ScrollArea className="h-32 rounded-md border p-2">
                 {availableRoles.map((role) => (
                   <FormField
@@ -156,7 +156,7 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
                               }}
                             />
                           </FormControl>
-                          <FormLabel className="text-sm font-normal">
+                          <FormLabel className="text-sm font-normal text-black">
                             {role.name}
                           </FormLabel>
                         </FormItem>
@@ -164,7 +164,7 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
                     }}
                   />
                 ))}
-                 {availableRoles.length === 0 && <p className="text-sm text-muted-foreground p-2">No roles available. Create roles first.</p>}
+                 {availableRoles.length === 0 && <p className="text-sm text-black p-2">No roles available. Create roles first.</p>}
               </ScrollArea>
               <FormMessage />
             </FormItem>
@@ -177,8 +177,8 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
               <div className="space-y-0.5">
-                <FormLabel>{getUIText("userActive")}</FormLabel>
-                <FormDescription>
+                <FormLabel className="text-black">{getUIText("userActive")}</FormLabel>
+                <FormDescription className="text-black">
                   Set whether this user account is active.
                 </FormDescription>
               </div>
@@ -193,10 +193,10 @@ export default function UserForm({ user, roles: availableRoles, onSubmit, onCanc
         />
 
         <div className="flex justify-end space-x-3 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="border-gray-200 text-black hover:bg-gray-50">
             {getUIText("cancel")}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
             {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
             {isSubmitting ? (user ? "Saving..." : "Adding...") : (user ? getUIText("save") : getUIText("addUser"))}
           </Button>

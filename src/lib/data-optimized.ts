@@ -5,6 +5,7 @@ import { connectToDatabase, ObjectId } from './mongodb';
 import { initialSampleNewsArticles, availablePermissions } from './constants';
 import { cache, CACHE_KEYS } from './cache';
 import bcrypt from 'bcryptjs';
+import { mapMongoDocumentToGadget } from './utils';
 
 // Helper to map MongoDB document to NewsArticle type
 function mapMongoDocumentToNewsArticle(doc: any): NewsArticle {
@@ -40,19 +41,7 @@ function mapMongoDocumentToNewsArticle(doc: any): NewsArticle {
   };
 }
 
-// Helper to map MongoDB document to Gadget type
-function mapMongoDocumentToGadget(doc: any): Gadget {
-  if (!doc) return null as any;
-  return {
-    id: doc._id.toHexString(),
-    section: doc.section || doc.placement,
-    title: doc.title,
-    content: doc.content || doc.codeSnippet,
-    isActive: doc.isActive,
-    order: doc.order,
-    createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
-  };
-}
+
 
 // Helper to map MongoDB document to SeoSettings type
 function mapMongoDocumentToSeoSettings(doc: any): SeoSettings {
@@ -78,9 +67,7 @@ function mapMongoDocumentToSeoSettings(doc: any): SeoSettings {
 
 // Optimized function to get all news articles with simple caching
 export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle[]> {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Development mode: bypassing cache for fresh data');
-  }
+
   try {
     const connection = await connectToDatabase();
     
@@ -96,35 +83,7 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
         query.authorId = authorId;
     }
 
-    const count = await articlesCollection.countDocuments();
-    console.log(`Database has ${count} articles`);
-    
-    // Removed seeding logic to ensure no mock data is ever inserted
-    // if (count === 0 && initialSampleNewsArticles.length > 0) {
-    //     console.log("Seeding initial news articles...");
-    //     const articlesToSeed = initialSampleNewsArticles.map(article => {
-    //         const { id, ...restOfArticle } = article;
-    //         return {
-    //             ...restOfArticle,
-    //             publishedDate: new Date(article.publishedDate),
-    //             imageUrl: article.imageUrl || '', // Ensure imageUrl is explicitly preserved
-    //             inlineAdSnippets: article.inlineAdSnippets || [],
-    //             metaTitle: article.metaTitle || '',
-    //             metaDescription: article.metaDescription || '',
-    //             metaKeywords: article.metaKeywords || [],
-    //             ogTitle: article.ogTitle || '',
-    //             ogDescription: article.ogDescription || '',
-    //             ogImage: article.ogImage || '',
-    //             canonicalUrl: article.canonicalUrl || '',
-    //             articleYoutubeUrl: article.articleYoutubeUrl || '',
-    //             articleFacebookUrl: article.articleFacebookUrl || '',
-    //             articleMoreLinksUrl: article.articleMoreLinksUrl || '',
-    //             _id: new ObjectId(),
-    //         };
-    //     });
-    //     await articlesCollection.insertMany(articlesToSeed);
-    //     console.log(`${articlesToSeed.length} articles seeded.`);
-    // }
+
 
     const articlesCursor = articlesCollection.find(query, {
       projection: {
@@ -140,28 +99,7 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
     }).sort({ publishedDate: -1 });
     const articlesArray = await articlesCursor.toArray();
     
-    // Debug: Check what fields are actually returned from the database
-    if (articlesArray.length > 0) {
-      console.log('Debug: First article from database has fields:', Object.keys(articlesArray[0]));
-      console.log('Debug: First article imageUrl from DB:', articlesArray[0].imageUrl);
-      console.log('Debug: First article featuredImage from DB:', articlesArray[0].featuredImage); // Check for alternative names
-      console.log('Debug: First article image from DB:', articlesArray[0].image); // Check for alternative names
-      console.log('Debug: First article displayPlacements from DB:', articlesArray[0].displayPlacements); // Check new field
-      // Log the full displayPlacements array from DB
-      // console.log('Debug: Full displayPlacements from DB (First article):', JSON.stringify(articlesArray[0].displayPlacements));
-    }
-    
     const result = articlesArray.map(mapMongoDocumentToNewsArticle);
-    
-    // Debug: Check what imageUrl is in the mapped result
-    if (result.length > 0) {
-      console.log('Debug: First mapped article has imageUrl:', result[0].imageUrl);
-      console.log('Debug: First mapped article has displayPlacements:', result[0].displayPlacements);
-      // Log the full displayPlacements array from mapped result
-      // console.log('Debug: Full displayPlacements from mapped result (First article):', JSON.stringify(result[0].displayPlacements));
-    }
-    
-    console.log(`Fetched ${result.length} articles from database`);
     
     // Only cache if we have real database articles
     if (result.length > 0) {
@@ -221,21 +159,7 @@ export async function getArticleById(id: string): Promise<NewsArticle | null> {
       },
     });
     
-    // Debug: Check what fields are returned for single article
-    if (articleDoc) {
-      console.log('Debug: Single article from database has fields:', Object.keys(articleDoc));
-      console.log('Debug: Single article imageUrl:', articleDoc.imageUrl);
-      console.log('Debug: Single article featuredImage:', articleDoc.featuredImage);
-      console.log('Debug: Single article displayPlacements:', articleDoc.displayPlacements);
-    }
-    
     const result = articleDoc ? mapMongoDocumentToNewsArticle(articleDoc) : null;
-    
-    // Debug: Check what fields are in the mapped single article
-    if (result) {
-      console.log('Debug: Single mapped article has imageUrl:', result.imageUrl);
-      console.log('Debug: Single mapped article has displayPlacements:', result.displayPlacements);
-    }
     
     cache.set(cacheKey, result, 5 * 60 * 1000); // 5 minutes cache
     return result;
@@ -343,6 +267,8 @@ export async function getActiveGadgetsBySection(section: LayoutSection): Promise
         isActive: true
     };
 
+
+
     const gadgetsCursor = db.collection('advertisements').find(query, {
       projection: {
         _id: 1,
@@ -356,13 +282,13 @@ export async function getActiveGadgetsBySection(section: LayoutSection): Promise
     const gadgetsArray = await gadgetsCursor.toArray();
     const result = gadgetsArray.map(mapMongoDocumentToGadget);
     
-    console.log(`Debug: getActiveGadgetsBySection('${section}') returned ${result.length} gadgets. Sample:`, result.slice(0,2));
-    
-    cache.set(cacheKey, result, 10 * 60 * 1000); // 10 minutes cache
+    // Production fix: Return empty array if no gadgets found (website will work without ads)
+    cache.set(cacheKey, result, 20 * 60 * 1000); // 20 minutes cache for better performance
     return result;
 
   } catch (error) {
     console.error(`Error fetching gadgets for section ${section}:`, error);
+    // Production fix: Return empty array on error instead of crashing
     return [];
   }
 }
@@ -422,16 +348,52 @@ export async function getSeoSettings(): Promise<SeoSettings | null> {
         footerFacebookUrl: settingsDoc.footerFacebookUrl,
         footerMoreLinksUrl: settingsDoc.footerMoreLinksUrl,
       };
-      cache.set(cacheKey, result, 30 * 60 * 1000);
+      cache.set(cacheKey, result, 60 * 60 * 1000); // 1 hour cache for better performance
       return result;
     }
     
-    // Return null if no settings found and no mock data fallback
-    return null;
+                    // Production fix: Return default SEO settings if none found
+                const defaultSeoSettings: SeoSettings = {
+                  id: 'default',
+                  siteTitle: 'Samay Barta - News Portal',
+                  metaDescription: 'Latest news and updates from Samay Barta',
+                  metaKeywords: ['news', 'latest news', 'technology', 'sports', 'business'],
+                  faviconUrl: '/favicon.ico',
+                  ogSiteName: 'Samay Barta',
+                  ogLocale: 'en_US',
+                  ogType: 'website',
+                  twitterCard: 'summary_large_image',
+                  twitterSite: '@samaybarta',
+                  twitterCreator: '@samaybarta',
+                  updatedAt: new Date().toISOString(),
+                  footerYoutubeUrl: '',
+                  footerFacebookUrl: '',
+                  footerMoreLinksUrl: '',
+                };
+    
+    return defaultSeoSettings;
   } catch (error) {
     console.error("Error fetching SEO settings:", error);
-    // Return null on error, do not return fallback settings
-    return null;
+                    // Production fix: Return default settings on error
+                const defaultSeoSettings: SeoSettings = {
+                  id: 'default',
+                  siteTitle: 'Samay Barta - News Portal',
+                  metaDescription: 'Latest news and updates from Samay Barta',
+                  metaKeywords: ['news', 'latest news', 'technology', 'sports', 'business'],
+                  faviconUrl: '/favicon.ico',
+                  ogSiteName: 'Samay Barta',
+                  ogLocale: 'en_US',
+                  ogType: 'website',
+                  twitterCard: 'summary_large_image',
+                  twitterSite: '@samaybarta',
+                  twitterCreator: '@samaybarta',
+                  updatedAt: new Date().toISOString(),
+                  footerYoutubeUrl: '',
+                  footerFacebookUrl: '',
+                  footerMoreLinksUrl: '',
+                };
+    
+    return defaultSeoSettings;
   }
 }
 
@@ -451,6 +413,14 @@ export async function getActiveGadgetsBySections(sections: LayoutSection[]): Pro
 
 // Function to get articles specifically for home page
 export async function getHomePageArticles(authorId?: string): Promise<NewsArticle[]> {
+  const cacheKey = `homepage_articles_${authorId || 'all'}`;
+  
+  // Check cache first with longer TTL for better performance
+  const cached = cache.get<NewsArticle[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  
   try {
     const connection = await connectToDatabase();
     
@@ -461,6 +431,25 @@ export async function getHomePageArticles(authorId?: string): Promise<NewsArticl
     const { db } = connection;
     const articlesCollection = db.collection('articles');
 
+    // Check if articles have displayPlacements field
+    const totalArticles = await articlesCollection.find({}).toArray();
+    
+    if (totalArticles.length === 0) {
+      return [];
+    }
+    
+    // Check if articles have displayPlacements field
+    const articlesWithPlacements = totalArticles.filter(article => 
+      article.displayPlacements && Array.isArray(article.displayPlacements) && article.displayPlacements.length > 0
+    );
+    
+    if (articlesWithPlacements.length === 0) {
+      // Return all articles if none have displayPlacements
+      const result = totalArticles.map(mapMongoDocumentToNewsArticle);
+      return result;
+    }
+    
+    // Use normal query for articles with displayPlacements
     const query: any = {
       displayPlacements: { 
         $in: ['homepage-hero', 'homepage-latest-posts', 'homepage-more-headlines', 'sidebar-must-read'] 
@@ -470,7 +459,7 @@ export async function getHomePageArticles(authorId?: string): Promise<NewsArticl
     if (authorId && authorId !== 'SUPERADMIN_ENV') {
         query.authorId = authorId;
     }
-
+    
     const articlesCursor = articlesCollection.find(query, {
       projection: {
         _id: 1,
@@ -485,18 +474,30 @@ export async function getHomePageArticles(authorId?: string): Promise<NewsArticl
     }).sort({ publishedDate: -1 });
     
     const articlesArray = await articlesCursor.toArray();
+    
     const result = articlesArray.map(mapMongoDocumentToNewsArticle);
     
-    console.log(`Fetched ${result.length} home page articles from database`);
+    // Cache the result with longer TTL for better performance
+    cache.set(cacheKey, result, 15 * 60 * 1000); // 15 minutes cache
+    
     return result;
   } catch (error) {
     console.error("Error fetching home page articles:", error);
+    // Production fix: Return empty array on error instead of crashing
     return [];
   }
 }
 
 // Function to get articles specifically for article details pages  
 export async function getDetailsPageArticles(authorId?: string, currentArticleCategory?: string, currentArticleId?: string, placement?: 'article-related' | 'article-sidebar'): Promise<NewsArticle[]> {
+  const cacheKey = `details_articles_${authorId || 'all'}_${currentArticleCategory || 'all'}_${currentArticleId || 'all'}_${placement || 'all'}`;
+  
+  // Check cache first
+  const cached = cache.get<NewsArticle[]>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  
   try {
     const connection = await connectToDatabase();
     
@@ -568,7 +569,9 @@ export async function getDetailsPageArticles(authorId?: string, currentArticleCa
     const articlesArray = await articlesCursor.toArray();
     const result = articlesArray.map(mapMongoDocumentToNewsArticle);
     
-    console.log(`Fetched ${result.length} details page articles from database (placement: ${placement || 'all'}, category: ${currentArticleCategory || 'all'}, post: ${currentArticleId || 'all'})`);
+    // Cache the result
+    cache.set(cacheKey, result, 10 * 60 * 1000); // 10 minutes cache
+    
     return result;
   } catch (error) {
     console.error("Error fetching details page articles:", error);

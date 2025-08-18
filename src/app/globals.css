@@ -5,80 +5,42 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%; /* Light Grey */
-    --foreground: 210 10% 23%; /* Dark Grey/Black */
-    --card: 210 40% 100%; /* White for cards */
-    --card-foreground: 210 10% 23%;
-    --popover: 210 40% 100%;
-    --popover-foreground: 210 10% 23%;
-    --primary: 207 70% 53%; /* Blue #3498db */
-    --primary-foreground: 210 40% 98%; /* Light color for text on primary */
-    --secondary: 210 40% 91%; /* Lighter grey for secondary elements */
-    --secondary-foreground: 210 10% 23%;
-    --muted: 210 40% 91%;
-    --muted-foreground: 210 10% 45%; /* Muted text, slightly lighter */
-    --accent: 207 70% 53%; /* Blue #3498db - can be same as primary */
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84.2% 60.2%;
+    --background: 0 0% 100%; /* Pure White */
+    --foreground: 0 0% 0%; /* Pure Black */
+    --card: 0 0% 100%; /* Pure White for cards */
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 100%; /* White */
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 100%; /* White */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 100%;
+    --muted-foreground: 0 0% 0%;
+    --accent: 0 0% 100%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 210 40% 85%; /* Slightly darker border */
-    --input: 210 40% 100%; /* Input background - white for better contrast */
-    --ring: 207 70% 53%; /* Blue for focus rings */
+    --border: 220 13% 91%;
+    --input: 0 0% 100%;
+    --ring: 220 13% 91%;
     --radius: 0.5rem;
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-
-    /* Sidebar variables might not be heavily used here but good to keep them consistent */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 210 10% 15%; /* Dark background for dark mode */
-    --foreground: 210 40% 98%; /* Light foreground for dark mode */
-    --card: 210 10% 20%;
-    --card-foreground: 210 40% 98%;
-    --popover: 210 10% 20%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 207 70% 53%; /* Blue */
-    --primary-foreground: 210 10% 15%;
-    --secondary: 210 10% 25%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 210 10% 25%;
-    --muted-foreground: 210 40% 60%;
-    --accent: 207 70% 53%;
-    --accent-foreground: 210 10% 15%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 210 10% 30%;
-    --input: 210 10% 25%; /* Darker input background */
-    --ring: 207 70% 53%;
-
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    /* Dark mode sidebar (if applicable) */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    /* Sidebar variables */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 0 0% 0%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 220 13% 91%;
   }
 }
 
@@ -87,11 +49,17 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-geist-sans);
+    @apply bg-background text-foreground; /* Ensures body also uses light mode variables */
   }
-  html.dark body {
-    @apply bg-background text-foreground; /* Ensures body also uses dark mode variables */
+  
+  /* Ensure admin pages have solid white backgrounds */
+  .admin-page {
+    background-color: #ffffff !important;
+  }
+  
+  /* Override any potential background conflicts */
+  [data-admin="true"] {
+    background-color: #ffffff !important;
   }
 }
 

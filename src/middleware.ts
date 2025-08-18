@@ -9,8 +9,7 @@ export async function middleware(request: NextRequest) {
 
   // Log details for every request to /admin/*
   if (pathname.startsWith('/admin')) {
-    console.log(`[Middleware] Pathname: ${pathname}`);
-    console.log(`[Middleware] ALL cookies received by middleware: ${JSON.stringify(allCookies)}`);
+    
   }
 
   // Allow requests to the login page itself, API routes, and static assets
@@ -20,7 +19,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.includes('.') // commonly for static files like .ico, .png
   ) {
-    console.log(`[Middleware] Allowing request to login, API, or static asset: ${pathname}`);
+
     return NextResponse.next();
   }
 
@@ -30,10 +29,7 @@ export async function middleware(request: NextRequest) {
     const sessionCookieValue = sessionCookie?.value;
     const serverAdminUsername = process.env.ADMIN_USERNAME;
 
-    console.log(`[Middleware] Checking session for protected admin route: ${pathname}`);
-    console.log(`[Middleware] Value of '${SESSION_COOKIE_NAME}' from request.cookies.get(): '${sessionCookieValue}'`);
-    console.log(`[Middleware] Expected SUPERADMIN_COOKIE_VALUE: '${SUPERADMIN_COOKIE_VALUE}'`);
-    console.log(`[Middleware] Value of process.env.ADMIN_USERNAME at middleware runtime: '${serverAdminUsername}'`);
+
 
     let reasonForRedirect = '';
 
@@ -50,7 +46,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (reasonForRedirect) {
-      console.log(`[Middleware] Session check FAILED. ${reasonForRedirect} Redirecting to login for path: ${pathname}.`);
+  
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirectedFrom', pathname);
       if (reasonForRedirect.includes('CRITICAL SERVER MISCONFIGURATION')) {
@@ -62,7 +58,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // If all checks pass for SUPERADMIN_COOKIE_VALUE
-    console.log(`[Middleware] Valid '${SUPERADMIN_COOKIE_VALUE}' cookie found and server ADMIN_USERNAME is set. Allowing access to ${pathname}.`);
+
     return NextResponse.next();
   }
 

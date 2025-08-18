@@ -127,11 +127,11 @@ export default function SeoManagementPage() {
   };
   
   const errorExplanation = (
-     <Card className="mb-6 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30">
+     <Card className="mb-6 border-yellow-400 bg-yellow-50">
         <CardHeader>
-            <CardTitle className="text-lg text-yellow-800 dark:text-yellow-300">Note on Console Errors & Page Display</CardTitle>
+            <CardTitle className="text-lg text-yellow-800">Note on Console Errors & Page Display</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-yellow-700 dark:text-yellow-200 space-y-2">
+        <CardContent className="text-sm text-yellow-700 space-y-2">
             <p>
                 If you see errors in your browser's developer console related to <code>extensions.aitopia.ai</code> or similar domains not controlled by this application, these are likely caused by a browser extension you have installed (e.g., Aitopia). These errors are not part of Clypio and can usually be ignored or resolved by managing your browser extensions.
             </p>
@@ -142,33 +142,36 @@ export default function SeoManagementPage() {
      </Card>
   );
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-20rem)] bg-white">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-black">Loading SEO settings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 bg-white">
       {errorExplanation}
-      <Card className="shadow-lg rounded-xl">
+      <Card className="shadow-sm rounded-lg max-w-4xl mx-auto bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-            <BarChart3 /> Global SEO Management
+          <CardTitle className="text-2xl font-semibold text-black flex items-center gap-2">
+            <BarChart3 className="text-blue-600" /> SEO Management
           </CardTitle>
-          <CardDescription>
-            Manage default Search Engine Optimization settings for your entire site. These can be overridden on individual articles.
-          </CardDescription>
+          <CardDescription className="text-black">Configure your website's SEO settings and meta information.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <Alert variant="default" className="bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-700">
-              <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertTitle className="text-blue-700 dark:text-blue-300">SEO Configuration</AlertTitle>
-              <AlertDescription className="text-blue-600 dark:text-blue-400">
+            <Alert variant="default" className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-700">SEO Configuration</AlertTitle>
+              <AlertDescription className="text-blue-600">
                 These settings provide global defaults for your site's SEO. For specific articles, you can set more granular SEO options on the article editing page. Full user role management for SEO specialists is a planned feature.
               </AlertDescription>
             </Alert>
 
-            {isLoading ? (
-                <div className="flex justify-center items-center py-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-            ) : (
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -177,9 +180,9 @@ export default function SeoManagementPage() {
                         name="siteTitle"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Site Title</FormLabel>
-                                <FormControl><Input placeholder="Your Site Name" {...field} /></FormControl>
-                                <FormDescription>The main title for your website (max 70 chars).</FormDescription>
+                                <FormLabel className="text-black">Site Title</FormLabel>
+                                <FormControl><Input placeholder="Your Site Name" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">The main title for your website (max 70 chars).</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -189,9 +192,9 @@ export default function SeoManagementPage() {
                         name="faviconUrl"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Favicon URL</FormLabel>
-                                <FormControl><Input placeholder="/favicon.ico or https://example.com/icon.png" {...field} /></FormControl>
-                                 <FormDescription>URL to your site's favicon. This icon appears in browser tabs.</FormDescription>
+                                <FormLabel className="text-black">Favicon URL</FormLabel>
+                                <FormControl><Input placeholder="/favicon.ico or https://example.com/icon.png" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                 <FormDescription className="text-black">URL to your site's favicon. This icon appears in browser tabs.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -203,9 +206,9 @@ export default function SeoManagementPage() {
                     name="metaDescription"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Global Meta Description</FormLabel>
-                            <FormControl><Textarea placeholder="A short description of your site for search engines." rows={3} {...field} /></FormControl>
-                            <FormDescription>Default meta description (max 160 chars).</FormDescription>
+                            <FormLabel className="text-black">Global Meta Description</FormLabel>
+                            <FormControl><Textarea placeholder="A short description of your site for search engines." rows={3} {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                            <FormDescription className="text-black">Default meta description (max 160 chars).</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -215,23 +218,23 @@ export default function SeoManagementPage() {
                     name="metaKeywords"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Global Meta Keywords (comma-separated)</FormLabel>
-                            <FormControl><Input placeholder="keyword1, keyword2, keyword3" {...field} /></FormControl>
-                            <FormDescription>Default keywords. Use sparingly as they have less impact now.</FormDescription>
+                            <FormLabel className="text-black">Global Meta Keywords (comma-separated)</FormLabel>
+                            <FormControl><Input placeholder="keyword1, keyword2, keyword3" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                            <FormDescription className="text-black">Default keywords. Use sparingly as they have less impact now.</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )}
                 />
                 
-                <h3 className="text-lg font-semibold pt-4 border-t mt-6">Open Graph Settings (for social sharing)</h3>
+                <h3 className="text-lg font-semibold pt-4 border-t mt-6 text-black">Open Graph Settings (for social sharing)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <FormField
                         control={form.control}
                         name="ogSiteName"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Open Graph Site Name</FormLabel>
-                                <FormControl><Input placeholder="Your Site Name (for OG)" {...field} /></FormControl>
+                                <FormLabel className="text-black">Open Graph Site Name</FormLabel>
+                                <FormControl><Input placeholder="Your Site Name (for OG)" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -241,9 +244,9 @@ export default function SeoManagementPage() {
                         name="ogLocale"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Open Graph Locale</FormLabel>
-                                <FormControl><Input placeholder="en_US or bn_BD" {...field} /></FormControl>
-                                <FormDescription>e.g., en_US, bn_BD</FormDescription>
+                                <FormLabel className="text-black">Open Graph Locale</FormLabel>
+                                <FormControl><Input placeholder="en_US or bn_BD" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">e.g., en_US, bn_BD</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -253,25 +256,25 @@ export default function SeoManagementPage() {
                         name="ogType"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Open Graph Type</FormLabel>
-                                <FormControl><Input placeholder="website / article" {...field} /></FormControl>
-                                <FormDescription>Usually "website" for homepage, "article" for articles.</FormDescription>
+                                <FormLabel className="text-black">Open Graph Type</FormLabel>
+                                <FormControl><Input placeholder="website / article" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">Usually "website" for homepage, "article" for articles.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
 
-                <h3 className="text-lg font-semibold pt-4 border-t mt-6">Twitter Card Settings</h3>
+                <h3 className="text-lg font-semibold pt-4 border-t mt-6 text-black">Twitter Card Settings</h3>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <FormField
                         control={form.control}
                         name="twitterCard"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Twitter Card Type</FormLabel>
+                                <FormLabel className="text-black">Twitter Card Type</FormLabel>
                                 <FormControl>
-                                    <select {...field} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                                    <select {...field} className="flex h-10 w-full items-center justify-between rounded-md border-2 border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none">
                                         <option value="summary">summary</option>
                                         <option value="summary_large_image">summary_large_image</option>
                                         <option value="app">app</option>
@@ -287,9 +290,9 @@ export default function SeoManagementPage() {
                         name="twitterSite"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Twitter Site Handle</FormLabel>
-                                <FormControl><Input placeholder="@YourSiteTwitter" {...field} /></FormControl>
-                                <FormDescription>Your site's Twitter username.</FormDescription>
+                                <FormLabel className="text-black">Twitter Site Handle</FormLabel>
+                                <FormControl><Input placeholder="@YourSiteTwitter" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">Your site's Twitter username.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -299,25 +302,25 @@ export default function SeoManagementPage() {
                         name="twitterCreator"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Twitter Creator Handle (Optional)</FormLabel>
-                                <FormControl><Input placeholder="@AuthorTwitter" {...field} /></FormControl>
-                                <FormDescription>Default author Twitter username (if applicable).</FormDescription>
+                                <FormLabel className="text-black">Twitter Creator Handle (Optional)</FormLabel>
+                                <FormControl><Input placeholder="@AuthorTwitter" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">Default author Twitter username (if applicable).</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
 
-                <h3 className="text-lg font-semibold pt-4 border-t mt-6">Footer Social Links</h3>
+                <h3 className="text-lg font-semibold pt-4 border-t mt-6 text-black">Footer Social Links</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FormField
                         control={form.control}
                         name="footerYoutubeUrl"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-1"><Youtube className="h-4 w-4"/>YouTube URL</FormLabel>
-                                <FormControl><Input type="url" placeholder="https://youtube.com/yourchannel" {...field} /></FormControl>
-                                <FormDescription>Link to your YouTube channel for the site footer.</FormDescription>
+                                <FormLabel className="flex items-center gap-1 text-black"><Youtube className="h-4 w-4"/>YouTube URL</FormLabel>
+                                <FormControl><Input type="url" placeholder="https://youtube.com/yourchannel" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">Link to your YouTube channel for the site footer.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -327,9 +330,9 @@ export default function SeoManagementPage() {
                         name="footerFacebookUrl"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-1"><Facebook className="h-4 w-4"/>Facebook URL</FormLabel>
-                                <FormControl><Input type="url" placeholder="https://facebook.com/yourpage" {...field} /></FormControl>
-                                <FormDescription>Link to your Facebook page for the site footer.</FormDescription>
+                                <FormLabel className="flex items-center gap-1 text-black"><Facebook className="h-4 w-4"/>Facebook URL</FormLabel>
+                                <FormControl><Input type="url" placeholder="https://facebook.com/yourpage" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">Link to your Facebook page for the site footer.</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -339,21 +342,20 @@ export default function SeoManagementPage() {
                         name="footerMoreLinksUrl"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel className="flex items-center gap-1"><LinkIcon className="h-4 w-4"/>More Links URL</FormLabel>
-                                <FormControl><Input type="url" placeholder="https://example.com/social" {...field} /></FormControl>
-                                <FormDescription>A general link for "More" in the site footer (e.g., a social hub page).</FormDescription>
+                                <FormLabel className="flex items-center gap-1 text-black"><LinkIcon className="h-4 w-4"/>More Links URL</FormLabel>
+                                <FormControl><Input type="url" placeholder="https://example.com/social" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                                <FormDescription className="text-black">A general link for "More" in the site footer (e.g., a social hub page).</FormDescription>
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
                 
-                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
+                <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white">
                     {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "Save SEO Settings"}
                 </Button>
             </form>
             </Form>
-            )}
         </CardContent>
       </Card>
     </div>

@@ -111,7 +111,6 @@ export function clearArticlesCache(): void {
 // Force refresh all cache
 export function forceRefreshCache(): void {
   cache.clear();
-  console.log('All cache cleared');
 }
 
 // Auto-cleanup every 10 minutes

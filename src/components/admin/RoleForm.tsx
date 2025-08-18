@@ -78,8 +78,8 @@ export default function RoleForm({ role, onSubmit, onCancel, isSubmitting }: Rol
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{getUIText("roleName")}</FormLabel>
-              <FormControl><Input placeholder="e.g., Editor, Layout Manager" {...field} /></FormControl>
+              <FormLabel className="text-black">{getUIText("roleName")}</FormLabel>
+              <FormControl><Input placeholder="e.g., Editor, Layout Manager" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -89,16 +89,16 @@ export default function RoleForm({ role, onSubmit, onCancel, isSubmitting }: Rol
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{getUIText("roleDescription")}</FormLabel>
-              <FormControl><Textarea placeholder="Briefly describe this role's purpose." {...field} rows={3} /></FormControl>
+              <FormLabel className="text-black">{getUIText("roleDescription")}</FormLabel>
+              <FormControl><Textarea placeholder="Briefly describe this role's purpose." {...field} rows={3} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
         <FormItem>
-          <FormLabel>{getUIText("permissions")}</FormLabel>
-          <FormDescription>Select the permissions for this role.</FormDescription>
+          <FormLabel className="text-black">{getUIText("permissions")}</FormLabel>
+          <FormDescription className="text-black">Select the permissions for this role.</FormDescription>
           <ScrollArea className="h-48 rounded-md border p-4">
             {availablePermissions.map((permission) => (
               <FormField
@@ -125,7 +125,7 @@ export default function RoleForm({ role, onSubmit, onCancel, isSubmitting }: Rol
                           }}
                         />
                       </FormControl>
-                      <FormLabel className="text-sm font-normal">
+                      <FormLabel className="text-sm font-normal text-black">
                         {getPermissionDisplayName(permission)}
                       </FormLabel>
                     </FormItem>
@@ -138,10 +138,10 @@ export default function RoleForm({ role, onSubmit, onCancel, isSubmitting }: Rol
         </FormItem>
 
         <div className="flex justify-end space-x-3 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="border-gray-200 text-black hover:bg-gray-50">
             {getUIText("cancel")}
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
             {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
             {isSubmitting ? (role ? "Saving Role..." : "Adding Role...") : (role ? getUIText("save") : getUIText("addRole"))}
           </Button>

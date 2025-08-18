@@ -84,7 +84,7 @@ export default function EditArticlePage() {
         articleYoutubeUrl: data.articleYoutubeUrl,
         articleFacebookUrl: data.articleFacebookUrl,
         articleMoreLinksUrl: data.articleMoreLinksUrl,
-        displayPlacements: data.displayPlacements,
+        displayPlacements: data.unifiedPlacements as any,
         detailsPageCategories: data.detailsPageCategories,
         detailsPageSpecificPosts: data.detailsPageSpecificPosts,
       };
@@ -130,10 +130,10 @@ export default function EditArticlePage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          <p className="ml-4 text-lg text-muted-foreground">Loading article...</p>
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-20rem)] bg-white">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-black">Loading article...</p>
         </div>
       </div>
     );
@@ -141,24 +141,24 @@ export default function EditArticlePage() {
 
   if (error || !article) {
     return (
-      <div className="container mx-auto py-8">
-        <Card className="w-full max-w-md mx-auto shadow-lg border-destructive">
-          <CardHeader className="bg-destructive/10">
-            <CardTitle className="text-xl text-destructive flex items-center justify-center">
-              <AlertTriangle className="mr-2 h-6 w-6" />
+      <div className="container mx-auto py-8 bg-white">
+        <Card className="max-w-2xl mx-auto bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-red-800 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
               Error
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
-            <p className="text-muted-foreground mb-4">
+          <CardContent>
+            <p className="text-black">
               {error || "Article not found"}
             </p>
-            <Button asChild>
-              <Link href="/admin/dashboard">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+            <Link href="/admin/dashboard">
+              <Button variant="outline" className="border-gray-200 text-black hover:bg-gray-50">
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -198,10 +198,10 @@ export default function EditArticlePage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <p className="text-muted-foreground">
+              <p className="text-black">
                 An error occurred while editing the article. Please try again.
               </p>
-              <Button className="mt-4" onClick={() => window.location.reload()}>
+              <Button className="mt-4 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => window.location.reload()}>
                 Reload Page
               </Button>
             </CardContent>
@@ -209,31 +209,22 @@ export default function EditArticlePage() {
         </div>
       }
     >
-      <div className="container mx-auto py-8">
-        <div className="mb-6">
-          <Button asChild variant="ghost" className="mb-4">
-            <Link href="/admin/dashboard">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Link>
-          </Button>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-primary">
-                Edit Article: {article.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ArticleForm 
-                article={article}
-                onSubmit={handleSubmit}
-                onCancel={() => router.push('/admin/dashboard')}
-                isSubmitting={isSubmitting}
-              />
-            </CardContent>
-          </Card>
-        </div>
+      <div className="container mx-auto py-8 bg-white">
+        <Card className="shadow-lg rounded-xl max-w-4xl mx-auto bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold text-black">
+              Edit Article: {article.title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ArticleForm 
+              article={article}
+              onSubmit={handleSubmit}
+              onCancel={() => router.push('/admin/dashboard')}
+              isSubmitting={isSubmitting}
+            />
+          </CardContent>
+        </Card>
       </div>
     </ErrorBoundary>
   );

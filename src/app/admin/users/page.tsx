@@ -182,31 +182,35 @@ export default function UserManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-20rem)] bg-white">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-black">Loading users...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="shadow-lg rounded-xl">
+    <div className="container mx-auto py-8 bg-white">
+      <Card className="shadow-sm rounded-lg bg-white border-gray-200">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-              <UsersIcon /> {getUIText("manageUsers")}
-            </CardTitle>
-            <CardDescription>Add, edit, or delete admin users and assign roles.</CardDescription>
+            <CardTitle className="text-2xl font-semibold text-black">User Management</CardTitle>
+            <CardDescription className="text-black">Manage user accounts and permissions.</CardDescription>
           </div>
-          <Button onClick={handleAddUser} size="sm" className="ml-auto gap-1">
-            <PlusCircle className="h-4 w-4" />
-            {getUIText("addUser")}
+          <Button onClick={handleAddUser} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Add User
           </Button>
         </CardHeader>
         <CardContent>
-          {users.length === 0 ? (
-            <p className="text-center text-muted-foreground py-10">No users found. Add one to get started!</p>
-          ) : (
+          {users.length === 0 && (
+            <div className="text-center py-10">
+              <p className="text-center text-black py-10">No users found. Add one to get started!</p>
+            </div>
+          )}
+          {users.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -227,7 +231,7 @@ export default function UserManagementPage() {
                     </TableCell>
                     <TableCell>{user.isActive ? "Active" : "Inactive"}</TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} className="mr-2 hover:text-primary">
+                      <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)} className="mr-2 hover:text-blue-600 hover:bg-blue-50">
                         <Edit className="h-4 w-4" />
                          <span className="sr-only">Edit</span>
                       </Button>

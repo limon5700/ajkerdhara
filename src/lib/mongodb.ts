@@ -68,10 +68,10 @@ export async function connectToDatabase(): Promise<MongoConnection> {
   // Check cached connection with fast timeout
   if (cachedClient && cachedDb) {
     try {
-      // Very fast ping check with short timeout
+      // Production ping check with reasonable timeout
       const pingPromise = cachedDb.admin().ping();
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Ping timeout')), 1000) // 1 second timeout
+        setTimeout(() => reject(new Error('Ping timeout')), 5000) // 5 second timeout
       );
       await Promise.race([pingPromise, timeoutPromise]);
       return { client: cachedClient, db: cachedDb };
@@ -90,19 +90,19 @@ export async function connectToDatabase(): Promise<MongoConnection> {
       strict: true,
       deprecationErrors: true,
     },
-    // Very aggressive timeouts to prevent hanging
-    serverSelectionTimeoutMS: 3000, // 3 seconds
-    connectTimeoutMS: 3000, // 3 seconds
-    socketTimeoutMS: 3000, // 3 seconds
-    maxPoolSize: 1, // Minimal pool size
-    minPoolSize: 0, // No minimum pool
+    // Production timeouts for better reliability
+    serverSelectionTimeoutMS: 10000, // 10 seconds
+    connectTimeoutMS: 10000, // 10 seconds
+    socketTimeoutMS: 30000, // 30 seconds
+    maxPoolSize: 5, // Better pool size for production
+    minPoolSize: 1, // Keep at least one connection
   });
 
   try {
-    // Wrap connection in a timeout to ensure it doesn't hang
+    // Production connection with better timeout
     const connectionPromise = client.connect();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 3000)
+      setTimeout(() => reject(new Error('Connection timeout')), 10000)
     );
     
     await Promise.race([connectionPromise, timeoutPromise]);
@@ -128,7 +128,7 @@ export async function connectToDatabase(): Promise<MongoConnection> {
     cachedClient = client;
     cachedDb = db;
 
-    console.log("✅ Successfully connected to MongoDB. Database being used: " + (db.databaseName || (dbName ? dbName : "default/test")));
+
     return { client, db };
   } catch (error: any) {
     // Ensure client is closed on error
@@ -161,8 +161,14 @@ export async function connectToDatabase(): Promise<MongoConnection> {
       console.error("   ⚠️  CONNECTION REFUSED: Server is not accepting connections.");
     }
 
-    // Throw error instead of returning mock connection - force real database usage
-    throw new Error(`Failed to connect to MongoDB: ${error.message}. Please check your connection string and network settings.`);
+    // Production error handling - log error but don't crash the app
+    console.error(`MongoDB connection failed: ${error.message}`);
+    
+    // Production error handling - return empty results instead of crashing
+    console.error(`MongoDB connection failed: ${error.message}`);
+    
+    // For production, we'll handle this gracefully in the calling functions
+    throw new Error(`MongoDB connection failed: ${error.message}`);
   }
 }
 

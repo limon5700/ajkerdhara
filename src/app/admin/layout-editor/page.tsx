@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { PlusCircle, Edit, Trash2, Loader2, LayoutPanelLeft, CornerDownRight, GripVertical } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Loader2, LayoutPanelLeft, CornerDownRight, GripVertical, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,16 +13,14 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import GadgetForm, { type GadgetFormData } from "@/components/admin/GadgetForm"; // Import the new form
-import type { Gadget, LayoutSection, CreateGadgetData } from "@/lib/types";
+import type { Gadget, LayoutSection } from "@/lib/types";
 import {
   getAllGadgets,
-  addGadget,
-  updateGadget,
   deleteGadget,
 } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { formatSectionName } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 // Define the structure of the layout sections visible in the editor
 const layoutStructure: { name: string; section: LayoutSection; description: string }[] = [
@@ -42,18 +40,15 @@ const layoutStructure: { name: string; section: LayoutSection; description: stri
 const validSections = new Set(layoutStructure.map(s => s.section));
 
 export default function LayoutEditorPage() {
+  const { toast } = useToast();
+  const router = useRouter();
   const [gadgets, setGadgets] = useState<Gadget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [isAddEditDialogOpen, setIsAddEditDialogOpen] = useState(false);
-  const [editingGadget, setEditingGadget] = useState<Gadget | null>(null);
-  const [selectedSection, setSelectedSection] = useState<LayoutSection | null>(null); // For adding new gadget
-
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [gadgetToDelete, setGadgetToDelete] = useState<Gadget | null>(null);
-
-  const { toast } = useToast();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'layout' | 'ads'>('layout');
 
   const fetchGadgets = useCallback(async () => {
     setIsLoading(true);
@@ -73,15 +68,16 @@ export default function LayoutEditorPage() {
   }, [fetchGadgets]);
 
   const handleAddGadget = (section: LayoutSection) => {
-    setEditingGadget(null);
-    setSelectedSection(section); // Set the section for the new gadget
-    setIsAddEditDialogOpen(true);
+    router.push(`/admin/layout-editor/add-edit-ad?section=${section}`);
   };
 
   const handleEditGadget = (gadget: Gadget) => {
-    setEditingGadget(gadget);
-    setSelectedSection(gadget.section); // Ensure section is set for editing
-    setIsAddEditDialogOpen(true);
+    const params = new URLSearchParams();
+    params.set('edit', gadget.id);
+    if (gadget.section) {
+      params.set('section', gadget.section);
+    }
+    router.push(`/admin/layout-editor/add-edit-ad?${params.toString()}`);
   };
 
   const handleDeleteGadget = (gadget: Gadget) => {
@@ -109,49 +105,6 @@ export default function LayoutEditorPage() {
     }
   };
 
-  const handleFormSubmit = async (data: GadgetFormData) => {
-    setIsSubmitting(true);
-    try {
-      const gadgetData: CreateGadgetData | Partial<Omit<Gadget, 'id' | 'createdAt'>> = {
-        section: data.section,
-        title: data.title,
-        content: data.content,
-        isActive: data.isActive,
-        order: data.order,
-      };
-
-      let result: Gadget | null = null;
-      if (editingGadget) {
-        result = await updateGadget(editingGadget.id, gadgetData as Partial<Omit<Gadget, 'id' | 'createdAt'>>);
-        if (result) {
-          toast({ title: "Success", description: "Gadget updated successfully." });
-        } else {
-           toast({ title: "Error", description: "Failed to update gadget.", variant: "destructive" });
-        }
-      } else {
-        result = await addGadget(gadgetData as CreateGadgetData);
-         if (result) {
-            toast({ title: "Success", description: "Gadget added successfully." });
-        } else {
-            toast({ title: "Error", description: "Failed to add gadget.", variant: "destructive" });
-        }
-      }
-
-      if (result) {
-         await fetchGadgets();
-         setIsAddEditDialogOpen(false);
-         setEditingGadget(null);
-         setSelectedSection(null);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      console.error("Error saving gadget:", error);
-      toast({ title: "Error", description: `An error occurred while saving the gadget: ${errorMessage}`, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // Group gadgets by section, safely handling invalid/missing sections
   const gadgetsBySection = gadgets.reduce((acc, gadget) => {
     if (!gadget.section || !validSections.has(gadget.section)) {
@@ -167,21 +120,39 @@ export default function LayoutEditorPage() {
     return acc;
   }, {} as Record<LayoutSection, Gadget[]>);
 
+  // Get placement size badge with color coding
+  const getPlacementSizeBadge = (size: string) => {
+    const sizeColors = {
+      'small': 'bg-gray-100 text-black',
+      'medium': 'bg-blue-100 text-blue-700',
+      'large': 'bg-green-100 text-green-700',
+      'full-width': 'bg-purple-100 text-purple-700'
+    };
+    
+    return (
+      <span className={`inline-block px-2 py-1 text-xs rounded-full font-medium ${sizeColors[size as keyof typeof sizeColors] || 'bg-gray-100 text-black'}`}>
+        {size}
+      </span>
+    );
+  };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-20rem)] bg-white">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-black">Loading layout gadgets...</p>
+        </div>
       </div>
     );
   }
 
   const errorExplanation = (
-     <Card className="mb-6 border-yellow-400 bg-yellow-50 dark:bg-yellow-900/30">
+     <Card className="mb-6 border-yellow-400 bg-yellow-50">
         <CardHeader>
-            <CardTitle className="text-lg text-yellow-800 dark:text-yellow-300">Note on Console Errors</CardTitle>
+            <CardTitle className="text-lg text-yellow-800">Note on Console Errors</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-yellow-700 dark:text-yellow-200 space-y-2">
+        <CardContent className="text-sm text-yellow-700 space-y-2">
             <p>
                 You might see errors in your browser's developer console mentioning:
             </p>
@@ -194,95 +165,206 @@ export default function LayoutEditorPage() {
      </Card>
   );
 
+  // Ads List View
+  if (viewMode === 'ads') {
+    return (
+      <div className="container mx-auto py-8">
+        <Card className="shadow-lg rounded-xl mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl font-bold text-blue-600 flex items-center gap-2">
+                  <Megaphone className="h-6 w-6" /> Ads Management
+                </CardTitle>
+                <CardDescription className="text-black">Manage all your ads and gadgets in one place with edit and delete options.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setViewMode('layout')}
+                  className="gap-2"
+                >
+                  <LayoutPanelLeft className="h-4 w-4" />
+                  Back to Layout
+                </Button>
+                <Button 
+                  onClick={() => {
+                    router.push('/admin/layout-editor/add-edit-ad');
+                  }}
+                  className="gap-2"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add New Ad
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        {/* Ads List */}
+        <div className="space-y-4">
+          {gadgets.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Megaphone className="h-12 w-12 text-black mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2 text-black">No Ads Found</h3>
+                <p className="text-black mb-4">Start by adding your first ad to display on your website.</p>
+                <Button 
+                  onClick={() => {
+                    router.push('/admin/layout-editor/add-edit-ad');
+                  }}
+                  className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add New Ad
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            gadgets.map((gadget) => (
+              <Card key={gadget.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold">
+                          {gadget.title || `Ad #${gadget.id.substring(0, 6)}`}
+                        </h3>
+                        <Badge variant={gadget.isActive ? "default" : "outline"}>
+                          {gadget.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        {gadget.unifiedPlacement && (
+                          <Badge variant="secondary">
+                            {gadget.unifiedPlacement.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                          </Badge>
+                        )}
+                        {gadget.placementSize && getPlacementSizeBadge(gadget.placementSize)}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-black">
+                        <div>
+                          <span className="font-medium">Section:</span> {formatSectionName(gadget.section)}
+                        </div>
+                        <div>
+                          <span className="font-medium">Order:</span> {gadget.order ?? 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Created:</span> {gadget.createdAt ? new Date(gadget.createdAt).toLocaleDateString() : 'N/A'}
+                        </div>
+                      </div>
+
+                      {gadget.targetArticleId && (
+                        <div className="text-sm">
+                          <span className="font-medium">Target Article:</span> {gadget.targetArticleId}
+                        </div>
+                      )}
+
+                      {gadget.targetCategory && (
+                        <div className="text-sm">
+                          <span className="font-medium">Target Category:</span> {gadget.targetCategory}
+                        </div>
+                      )}
+
+                      <div className="text-sm">
+                        <span className="font-medium">Content Preview:</span>
+                        <div className="mt-1 p-2 bg-muted rounded text-xs font-mono max-w-full overflow-x-auto">
+                          {gadget.content.length > 100 
+                            ? `${gadget.content.substring(0, 100)}...` 
+                            : gadget.content
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-4">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditGadget(gadget)}
+                        className="border-gray-200 text-black hover:bg-blue-600 hover:text-white hover:border-blue-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleDeleteGadget(gadget)}
+                        className="gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+
+        {/* Add/Edit Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => {
+            if (!isOpen) { setIsDeleteDialogOpen(false); setGadgetToDelete(null); }
+            else { setIsDeleteDialogOpen(true); }
+        }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Confirm Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete the ad titled &quot;{gadgetToDelete?.title || `Ad #${gadgetToDelete?.id.substring(0,6)}`}&quot;? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="sm:justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => { setIsDeleteDialogOpen(false); setGadgetToDelete(null); }} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="button" variant="destructive" onClick={confirmDeleteGadget} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Delete Ad
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // Layout Editor View (Original)
   return (
-    <div className="container mx-auto py-8">
+    <div className="container mx-auto py-8 bg-white">
       {errorExplanation}
 
-      <Card className="shadow-lg rounded-xl mb-6">
+      <Card className="shadow-sm rounded-lg bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-             <LayoutPanelLeft className="h-6 w-6" /> Layout Editor
-          </CardTitle>
-          <CardDescription>Manage the layout sections and add HTML/JavaScript gadgets (like ads) to your site.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl font-semibold text-black flex items-center gap-2">
+                <LayoutPanelLeft className="text-blue-600" /> Layout Editor
+              </CardTitle>
+              <CardDescription className="text-black">Manage layout gadgets and content placement.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setViewMode('ads')}
+                className="border-gray-200 text-black hover:bg-gray-50"
+              >
+                <Megaphone className="h-4 w-4 mr-2" />
+                Ads Management
+              </Button>
+              <Button onClick={() => {
+                router.push('/admin/layout-editor/add-edit-ad');
+              }} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Gadget
+              </Button>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {layoutStructure.map(({ name, section, description }) => (
-          <Card key={section} className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-lg">{name}</CardTitle>
-              <CardDescription>{description}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-3">
-              {(gadgetsBySection[section] || []).length > 0 ? (
-                (gadgetsBySection[section] || []).map(gadget => (
-                  <div key={gadget.id} className="flex items-center justify-between p-3 border rounded-md bg-muted/50 group">
-                     <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                        <div>
-                            <p className="text-sm font-medium">{gadget.title || `Gadget #${gadget.id.substring(0, 6)}`}</p>
-                            <Badge variant={gadget.isActive ? "default" : "outline"} className="mt-1 text-xs">
-                                {gadget.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                             <Badge variant="secondary" className="mt-1 text-xs ml-1">
-                                Order: {gadget.order ?? 0}
-                            </Badge>
-                        </div>
-                     </div>
-                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <Button variant="ghost" size="icon" onClick={() => handleEditGadget(gadget)} className="h-7 w-7 hover:text-primary">
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit Gadget</span>
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteGadget(gadget)} className="h-7 w-7 hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                         <span className="sr-only">Delete Gadget</span>
-                      </Button>
-                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No gadgets in this section.</p>
-              )}
-            </CardContent>
-             <div className="p-4 mt-auto border-t">
-                 <Button onClick={() => handleAddGadget(section)} size="sm" className="w-full gap-1">
-                    <PlusCircle className="h-4 w-4" />
-                    Add a Gadget
-                </Button>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      <Dialog open={isAddEditDialogOpen} onOpenChange={(isOpen) => {
-          if (!isOpen) { setIsAddEditDialogOpen(false); setEditingGadget(null); setSelectedSection(null); }
-          else { setIsAddEditDialogOpen(true); }
-      }}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingGadget ? "Edit Gadget" : "Add New Gadget"}</DialogTitle>
-            <DialogDescription>
-              {editingGadget
-                ? "Modify the gadget's content or settings."
-                : selectedSection 
-                  ? `Add a new gadget to the "${formatSectionName(selectedSection)}" section.`
-                  : "Add a new gadget."
-              }
-            </DialogDescription>
-          </DialogHeader>
-           {isAddEditDialogOpen && (
-               <GadgetForm
-                gadget={editingGadget ?? (selectedSection ? { section: selectedSection, isActive: true } as Gadget : null)}
-                onSubmit={handleFormSubmit}
-                onCancel={() => { setIsAddEditDialogOpen(false); setEditingGadget(null); setSelectedSection(null);}}
-                isSubmitting={isSubmitting}
-                availableSections={layoutStructure.map(s => s.section)}
-                />
-           )}
-        </DialogContent>
-      </Dialog>
+      
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={(isOpen) => {
           if (!isOpen) { setIsDeleteDialogOpen(false); setGadgetToDelete(null); }

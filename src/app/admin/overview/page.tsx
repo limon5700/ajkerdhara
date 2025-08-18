@@ -33,21 +33,23 @@ export default function OverviewPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-20rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="ml-4 text-lg text-muted-foreground">Loading overview data...</p>
+      <div className="container mx-auto py-8 flex items-center justify-center min-h-[calc(100vh-20rem)] bg-white">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-lg text-black">Loading overview data...</p>
+        </div>
       </div>
     );
   }
 
   if (pageError) {
     return (
-      <div className="container mx-auto py-8">
-        <Card className="mb-6 border-destructive bg-destructive/10 dark:bg-destructive/20">
+      <div className="container mx-auto py-8 bg-white">
+        <Card className="mb-6 border-gray-200 bg-white shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg text-destructive-foreground dark:text-destructive-foreground/90">Error Loading Overview</CardTitle>
+            <CardTitle className="text-lg text-red-800 font-medium">Error Loading Overview</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-destructive-foreground/90 dark:text-destructive-foreground/80 space-y-2">
+          <CardContent className="text-sm text-red-700 space-y-2">
             <p>{pageError}</p>
           </CardContent>
         </Card>
@@ -56,13 +58,13 @@ export default function OverviewPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="shadow-lg rounded-xl mb-8">
+    <div className="container mx-auto py-8 bg-white">
+      <Card className="shadow-sm rounded-lg mb-8 border-gray-200 bg-white">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary flex items-center gap-2">
-            <BarChartBig /> Site Overview
+          <CardTitle className="text-2xl font-semibold text-black flex items-center gap-2">
+            <BarChartBig className="text-blue-600" /> Site Overview
           </CardTitle>
-          <CardDescription>A quick look at your site's key metrics.</CardDescription>
+          <CardDescription className="text-black">A quick look at your site's key metrics.</CardDescription>
         </CardHeader>
         <CardContent>
           {analytics ? (
@@ -77,7 +79,7 @@ export default function OverviewPage() {
               <AnalyticsCard title="Visitors This Month" value={analytics.visitorStats?.thisMonth?.toString() ?? "N/A"} icon={Eye} description="Requires tracking setup" />
             </div>
           ) : (
-            <div className="text-center py-4"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <div className="text-center py-4"><Loader2 className="h-6 w-6 animate-spin text-blue-600" /></div>
           )}
         </CardContent>
       </Card>

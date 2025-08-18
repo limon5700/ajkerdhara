@@ -41,7 +41,7 @@ export default function AddArticlePage() {
         articleYoutubeUrl: data.articleYoutubeUrl,
         articleFacebookUrl: data.articleFacebookUrl,
         articleMoreLinksUrl: data.articleMoreLinksUrl,
-        displayPlacements: data.displayPlacements,
+        displayPlacements: data.unifiedPlacements as any,
         detailsPageCategories: data.detailsPageCategories,
         detailsPageSpecificPosts: data.detailsPageSpecificPosts,
       };
@@ -70,14 +70,14 @@ export default function AddArticlePage() {
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="shadow-lg rounded-xl max-w-2xl mx-auto">
+    <div className="container mx-auto py-8 bg-white">
+      <Card className="shadow-sm rounded-lg max-w-2xl mx-auto border-gray-200 bg-white">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-primary">Add New Article</CardTitle>
-          <CardDescription>Fill in the details to create a new news article.</CardDescription>
+          <CardTitle className="text-2xl font-semibold text-black">Add New Article</CardTitle>
+          <CardDescription className="text-black">Fill in the details to create a new news article.</CardDescription>
         </CardHeader>
         <CardContent>
-          {pageError && <div className="mb-4 text-destructive">{pageError}</div>}
+          {pageError && <div className="mb-4 text-red-600 bg-red-50 p-3 rounded-md">{pageError}</div>}
           <ArticleForm
             article={null}
             onSubmit={(finalData) => handleFormSubmit(finalData)}

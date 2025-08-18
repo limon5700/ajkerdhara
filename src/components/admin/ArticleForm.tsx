@@ -2,7 +2,7 @@
 "use client";
 
 import type { ChangeEvent } from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,11 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { NewsArticle, Category, CreateNewsArticleData, ArticleDisplayLocation } from "@/lib/types";
-import { categories as allNewsCategories } from "@/lib/constants";
+import type { NewsArticle, Category, CreateNewsArticleData, UnifiedPlacement, PlacementConfig } from "@/lib/types";
+import { categories as allNewsCategories, UNIFIED_PLACEMENTS, getPlacementsByCategory } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Info, Loader2, Youtube, Facebook, Link as LinkIcon } from "lucide-react";
+import { Info, Loader2, Youtube, Facebook, Link as LinkIcon, CheckSquare, Square, Plus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox component
 
 const articleFormSchema = z.object({
@@ -41,14 +41,20 @@ const articleFormSchema = z.object({
   dataAiHint: z.string().max(50).optional().or(z.literal('')),
   inlineAdSnippetsInput: z.string().optional(),
 
-  // New field for display placements
-  displayPlacements: z.array(z.enum(['homepage-hero', 'homepage-latest-posts', 'homepage-more-headlines', 'sidebar-must-read', 'article-related', 'article-sidebar'])).optional(),
+  // New unified placement system
+  unifiedPlacements: z.array(z.string()).optional(),
   
   // Field for category-based filtering for details page articles
   detailsPageCategories: z.array(z.string()).optional(),
   
   // Field for specific post targeting for details page articles
   detailsPageSpecificPosts: z.array(z.string()).optional(),
+
+  // Text Links for clickable content
+  textLinks: z.array(z.object({
+    text: z.string().min(1, "Link text is required"),
+    url: z.string().url("Must be a valid URL")
+  })).optional(),
 
   // SEO Fields
   metaTitle: z.string().max(70, "Meta title should be 70 chars or less.").optional().or(z.literal('')),
@@ -77,60 +83,116 @@ interface ArticleFormProps {
   isSubmitting?: boolean;
 }
 
-const ARTICLE_DISPLAY_LOCATIONS: { 
-  label: string; 
-  value: ArticleDisplayLocation; 
-  description: string; 
-  category: 'homepage' | 'details' 
-}[] = [
-  { 
-    label: 'Homepage Hero (Featured)', 
-    value: 'homepage-hero', 
-    description: 'Main featured article on homepage', 
-    category: 'homepage' 
-  },
-  { 
-    label: 'Homepage Latest Posts', 
-    value: 'homepage-latest-posts', 
-    description: 'Latest news section on homepage', 
-    category: 'homepage' 
-  },
-  { 
-    label: 'Homepage More Headlines', 
-    value: 'homepage-more-headlines', 
-    description: 'More headlines section on homepage', 
-    category: 'homepage' 
-  },
-  { 
-    label: 'Sidebar Must Read (Homepage)', 
-    value: 'sidebar-must-read', 
-    description: 'Must read section on homepage sidebar', 
-    category: 'homepage' 
-  },
-  { 
-    label: 'Article Related Posts', 
-    value: 'article-related', 
-    description: 'Related posts in article details pages', 
-    category: 'details' 
-  },
-  { 
-    label: 'Article Sidebar', 
-    value: 'article-sidebar', 
-    description: 'Sidebar content in article details pages', 
-    category: 'details' 
-  },
-];
-
 export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting }: ArticleFormProps) {
   const { toast } = useToast();
-  const [selectedDisplayPlacements, setSelectedDisplayPlacements] = useState<string[]>(article?.displayPlacements || []);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [selectedUnifiedPlacements, setSelectedUnifiedPlacements] = useState<UnifiedPlacement[]>(article?.displayPlacements || []);
   const [availableArticles, setAvailableArticles] = useState<NewsArticle[]>([]);
   const [isLoadingArticles, setIsLoadingArticles] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>((article as any)?.detailsPageCategories || []);
+  const [textLinks, setTextLinks] = useState<Array<{text: string, url: string}>>((article as any)?.textLinks || []);
   
-  const hasDetailsPagePlacement = selectedDisplayPlacements.some(placement => 
-    ['article-related', 'article-sidebar'].includes(placement)
+  const hasDetailsPagePlacement = selectedUnifiedPlacements.some(placement => 
+    ['article-related', 'article-sidebar', 'article-sidebar-left', 'article-sidebar-right'].includes(placement)
   );
+
+  const handleInsertAdInline = () => {
+    if (contentRef.current) {
+      const textarea = contentRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+      const newValue = value.slice(0, start) + '[AD_INLINE]' + value.slice(end);
+      textarea.value = newValue;
+      textarea.selectionStart = textarea.selectionEnd = start + '[AD_INLINE]'.length;
+      textarea.focus();
+    }
+  };
+
+  const handleAddTextLink = () => {
+    setTextLinks([...textLinks, { text: '', url: '' }]);
+  };
+
+  const handleUpdateTextLink = (index: number, field: 'text' | 'url', value: string) => {
+    const newTextLinks = [...textLinks];
+    newTextLinks[index] = { ...newTextLinks[index], [field]: value };
+    setTextLinks(newTextLinks);
+  };
+
+  const handleRemoveTextLink = (index: number) => {
+    setTextLinks(textLinks.filter((_, i) => i !== index));
+  };
+
+  const handleInsertTextLink = (index: number) => {
+    const link = textLinks[index];
+    if (link.text && link.url && contentRef.current) {
+      const textarea = contentRef.current;
+      const start = textarea.selectionStart;
+      const value = textarea.value;
+      const linkHtml = `<a href="${link.url}" target="_blank" rel="noopener noreferrer">${link.text}</a>`;
+      const newValue = value.slice(0, start) + linkHtml + value.slice(start);
+      textarea.value = newValue;
+      textarea.selectionStart = textarea.selectionEnd = start + linkHtml.length;
+      textarea.focus();
+      toast({
+        title: "Link Inserted",
+        description: `"${link.text}" link has been inserted into the content.`,
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Please fill in both text and URL for the link.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInsertTextLinkFromSelection = () => {
+    if (contentRef.current) {
+      const textarea = contentRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = textarea.value.slice(start, end);
+      
+      if (start === end) {
+        toast({
+          title: "No Text Selected",
+          description: "Please select some text first, then click 'Make Text Clickable'.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Prompt user for URL
+      const url = prompt(`Enter URL for "${selectedText}":`, "https://");
+      
+      if (url && url.trim()) {
+        try {
+          // Validate URL
+          new URL(url);
+          
+          const value = textarea.value;
+          const linkHtml = `<a href="${url.trim()}" target="_blank" rel="noopener noreferrer">${selectedText}</a>`;
+          const newValue = value.slice(0, start) + linkHtml + value.slice(end);
+          
+          textarea.value = newValue;
+          textarea.selectionStart = textarea.selectionEnd = start + linkHtml.length;
+          textarea.focus();
+          
+          toast({
+            title: "Text Made Clickable",
+            description: `"${selectedText}" is now a clickable link.`,
+          });
+        } catch (error) {
+          toast({
+            title: "Invalid URL",
+            description: "Please enter a valid URL starting with http:// or https://",
+            variant: "destructive",
+          });
+        }
+      }
+    }
+  };
   
   const form = useForm<ArticleFormData>({
     resolver: zodResolver(articleFormSchema),
@@ -142,7 +204,7 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
       imageUrl: article?.imageUrl || "",
       dataAiHint: article?.dataAiHint || "",
       inlineAdSnippetsInput: article?.inlineAdSnippets?.join('\n\n') || "",
-      displayPlacements: article?.displayPlacements || [], // Initialize displayPlacements
+      unifiedPlacements: article?.displayPlacements || [], // Initialize unified placements
       detailsPageCategories: (article as any)?.detailsPageCategories || [], // Initialize category filters
       detailsPageSpecificPosts: (article as any)?.detailsPageSpecificPosts || [], // Initialize specific post filters
       // SEO Fields
@@ -198,15 +260,39 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
 
   // Filter available articles based on selected categories
   const filteredAvailableArticles = selectedCategories.length > 0 
-    ? availableArticles.filter(art => selectedCategories.includes(art.category))
+    ? availableArticles.filter(article => selectedCategories.includes(article.category))
     : availableArticles;
+
+  // Group placements by category for better organization
+  const homepagePlacements = UNIFIED_PLACEMENTS.filter(p => p.category === 'homepage');
+  const detailsPagePlacements = UNIFIED_PLACEMENTS.filter(p => p.category === 'details');
+  const headerFooterPlacements = UNIFIED_PLACEMENTS.filter(p => ['header', 'footer'].includes(p.category));
+  const sidebarPlacements = UNIFIED_PLACEMENTS.filter(p => p.category === 'sidebar');
+
+  const handlePlacementToggle = (placement: UnifiedPlacement) => {
+    setSelectedUnifiedPlacements(prev => {
+      if (prev.includes(placement)) {
+        return prev.filter(p => p !== placement);
+      } else {
+        return [...prev, placement];
+      }
+    });
+  };
+
+  const getPlacementSizeBadge = (size: string) => {
+    const sizeColors = {
+      'small': 'bg-gray-100 text-gray-700',
+      'medium': 'bg-blue-100 text-blue-700',
+      'large': 'bg-green-100 text-green-700',
+      'full-width': 'bg-purple-100 text-purple-700'
+    };
     
-  // Debug logging
-  useEffect(() => {
-    console.log('Selected categories changed:', selectedCategories);
-    console.log('Available articles:', availableArticles.length);
-    console.log('Filtered articles:', filteredAvailableArticles.length);
-  }, [selectedCategories, availableArticles.length, filteredAvailableArticles.length]);
+    return (
+      <span className={`inline-block px-2 py-1 text-xs rounded-full font-medium ${sizeColors[size as keyof typeof sizeColors] || 'bg-gray-100 text-gray-700'}`}>
+        {size}
+      </span>
+    );
+  };
 
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -251,7 +337,8 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         imageUrl: data.imageUrl || undefined,
         dataAiHint: data.dataAiHint || undefined,
         inlineAdSnippets: snippets,
-        displayPlacements: data.displayPlacements || [], // Include displayPlacements
+        textLinks: textLinks, // Include text links
+        displayPlacements: (data.unifiedPlacements as UnifiedPlacement[]) || [], // Include unified placements
         detailsPageCategories: data.detailsPageCategories || [], // Include category filters
         detailsPageSpecificPosts: data.detailsPageSpecificPosts || [], // Include specific post filters
         // SEO fields
@@ -279,8 +366,8 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl><Input placeholder="Enter article title" {...field} /></FormControl>
+              <FormLabel className="text-black">Title</FormLabel>
+              <FormControl><Input placeholder="Enter article title" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -290,8 +377,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
           name="excerpt"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Excerpt</FormLabel>
-              <FormControl><Textarea placeholder="Enter a short excerpt (summary)" {...field} rows={3} /></FormControl>
+              <FormLabel className="text-black">Excerpt</FormLabel>
+              <FormControl><Textarea placeholder="Enter a short excerpt (summary)" {...field} rows={3} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+              <FormDescription className="text-black">
+                A brief summary of the article (max 160 characters for SEO).
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -299,23 +389,120 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         <FormField
           control={form.control}
           name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Content</FormLabel>
-              <FormControl><Textarea placeholder="Enter the full article content. Use [AD_INLINE] where you want inline ads." {...field} rows={10} /></FormControl>
-              <FormDescription>Use `[AD_INLINE]` for inline ad placeholders.</FormDescription>
+          render={({ field }: { field: any }) => (
+            <FormItem className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <FormLabel className="text-black">Content</FormLabel>
+                <Button type="button" variant="secondary" size="sm" onClick={handleInsertAdInline} className="bg-gray-100 text-black hover:bg-gray-200 border border-gray-300">
+                  Insert Ad (Label)
+                </Button>
+              </div>
+              <div className="flex gap-2 mb-2">
+                <Button type="button" variant="secondary" size="sm" onClick={handleInsertAdInline} className="bg-gray-100 text-black hover:bg-gray-200 border border-gray-300">
+                  Insert Ad (Above)
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={handleInsertTextLinkFromSelection} className="bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300">
+                  Make Text Clickable
+                </Button>
+              </div>
+              <FormControl>
+                <div className="relative">
+                  <Textarea 
+                    {...field} 
+                    ref={contentRef} 
+                    rows={16} 
+                    placeholder="Enter the full article content. Use [AD_INLINE] where you want inline ads. Select text and use 'Make Text Clickable' to add links." 
+                    className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                  <Button type="button" variant="secondary" size="icon" onClick={handleInsertAdInline} className="absolute top-2 right-2 z-10 bg-gray-100 text-black hover:bg-gray-200 border border-gray-300">
+                    +
+                  </Button>
+                </div>
+              </FormControl>
+              <div className="flex gap-2 mt-2">
+                <Button type="button" variant="secondary" size="sm" onClick={handleInsertAdInline} className="bg-gray-100 text-black hover:bg-gray-200 border border-gray-300">
+                  Insert Ad (Below)
+                </Button>
+                <Button type="button" variant="secondary" size="sm" onClick={handleInsertTextLinkFromSelection} className="bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300">
+                  Make Text Clickable
+                </Button>
+              </div>
               <FormMessage />
             </FormItem>
           )}
         />
+        
+        {/* Text Links Section */}
+        <FormItem>
+          <FormLabel className="text-black">Text Links</FormLabel>
+          <FormDescription className="text-black">
+            Add clickable text links that will be available to insert into your content. These links will be clickable when the post is published.
+          </FormDescription>
+          
+          <div className="space-y-3">
+            {textLinks.map((link, index) => (
+              <div key={index} className="flex gap-2 items-start p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <div className="flex-1 space-y-2">
+                  <Input
+                    placeholder="Link text (e.g., 'Read More', 'Learn More')"
+                    value={link.text}
+                    onChange={(e) => handleUpdateTextLink(index, 'text', e.target.value)}
+                    className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                  <Input
+                    placeholder="URL (e.g., https://example.com)"
+                    value={link.url}
+                    onChange={(e) => handleUpdateTextLink(index, 'url', e.target.value)}
+                    className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleInsertTextLink(index)}
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                    disabled={!link.text || !link.url}
+                  >
+                    <LinkIcon className="h-4 w-4 mr-1" />
+                    Insert
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRemoveTextLink(index)}
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleAddTextLink}
+              className="border-2 border-dashed border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600 w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Text Link
+            </Button>
+          </div>
+        </FormItem>
+        
          <FormField
           control={form.control}
           name="inlineAdSnippetsInput"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Inline Ad Snippets (Optional)</FormLabel>
-              <FormControl><Textarea placeholder="Paste ad code snippets here, separated by a blank line." {...field} rows={6} /></FormControl>
-              <FormDescription>Snippets replace `[AD_INLINE]` sequentially.</FormDescription>
+              <FormLabel className="text-black">Inline Ad Snippets</FormLabel>
+              <FormControl><Textarea placeholder="Paste ad code snippets here, separated by a blank line." {...field} rows={6} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+              <FormDescription className="text-black">
+                Paste ad code snippets separated by blank lines. These will be automatically inserted where [AD_INLINE] markers are placed in the content.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -339,17 +526,25 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         <FormItem>
           <FormLabel>Upload Image (Optional)</FormLabel>
           <FormControl>
-            <Input type="file" accept="image/*" onChange={handleImageUpload} className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+            <Input type="file" accept="image/*" onChange={handleImageUpload} className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
           </FormControl>
-          <FormDescription>Max 5MB. Upload populates the URL field below.</FormDescription>
+          <FormDescription className="text-black">
+            Upload an image or provide a URL. Images are automatically optimized.
+          </FormDescription>
         </FormItem>
         <FormField
           control={form.control}
           name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image URL (or from upload)</FormLabel>
-              <FormControl><Input placeholder="https://example.com/image.jpg or auto-filled" {...field} /></FormControl>
+              <FormLabel className="text-black">Image URL</FormLabel>
+              <div className="space-y-2">
+                <Input type="file" accept="image/*" onChange={handleImageUpload} className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" />
+                <FormControl><Input placeholder="https://example.com/image.jpg or auto-filled" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+              </div>
+              <FormDescription className="text-black">
+                Upload an image or provide a URL. Images are automatically optimized.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -359,9 +554,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
           name="dataAiHint"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image AI Hint (Optional)</FormLabel>
-              <FormControl><Input placeholder="e.g., technology abstract" {...field} /></FormControl>
-              <FormDescription>1-2 keywords for AI image search (max 2 words).</FormDescription>
+              <FormLabel className="text-black">AI Data Hint</FormLabel>
+              <FormControl><Input placeholder="e.g., technology abstract" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+              <FormDescription className="text-black">
+                Optional hint for AI to understand the image content for better SEO.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -370,7 +567,7 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
         {/* Enhanced section for Display Placements */}
         <FormField
           control={form.control}
-          name="displayPlacements"
+          name="unifiedPlacements"
           render={() => (
             <FormItem>
               <div className="mb-4">
@@ -383,79 +580,169 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
               {/* Homepage Placements */}
               <div className="mb-6">
                 <h4 className="font-medium text-sm mb-3 text-blue-600">Homepage Placements</h4>
-                {ARTICLE_DISPLAY_LOCATIONS.filter(item => item.category === 'homepage').map((item) => (
-                  <FormField
-                    key={item.value}
-                    control={form.control}
-                    name="displayPlacements"
-                    render={({ field }) => {
-                      return (
-                        <FormItem
-                          key={item.value}
-                          className="flex flex-row items-start space-x-3 space-y-0 mb-3"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(item.value)}
-                              onCheckedChange={(checked) => {
-                                const newValue = checked
-                                  ? [...(field.value || []), item.value]
-                                  : field.value?.filter((value) => value !== item.value);
-                                field.onChange(newValue);
-                                setSelectedDisplayPlacements(newValue || []);
-                              }}
-                            />
-                          </FormControl>
-                          <div>
-                            <FormLabel className="font-normal">
-                              {item.label}
-                            </FormLabel>
-                            <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                          </div>
-                        </FormItem>
-                      );
-                    }}
-                  />
-                ))}
+                                 {homepagePlacements.map((placement) => (
+                   <FormField
+                     key={placement.placement}
+                     control={form.control}
+                     name="unifiedPlacements"
+                     render={({ field }) => {
+                       return (
+                         <FormItem
+                           key={placement.placement}
+                           className="flex flex-row items-start space-x-3 space-y-0 mb-3"
+                         >
+                           <FormControl>
+                             <Checkbox
+                               checked={field.value?.includes(placement.placement)}
+                               onCheckedChange={(checked) => {
+                                 const newValue = checked
+                                   ? [...(field.value || []), placement.placement]
+                                   : field.value?.filter((value) => value !== placement.placement);
+                                 field.onChange(newValue);
+                                 setSelectedUnifiedPlacements((newValue as UnifiedPlacement[]) || []);
+                               }}
+                             />
+                           </FormControl>
+                           <div>
+                             <FormLabel className="font-normal">
+                               {placement.placement.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                             </FormLabel>
+                             <p className="text-xs text-gray-500 mt-1">{placement.description}</p>
+                             {placement.size && (
+                               <p className="text-xs text-gray-500 mt-1">Size: {getPlacementSizeBadge(placement.size)}</p>
+                             )}
+                           </div>
+                         </FormItem>
+                       );
+                     }}
+                   />
+                 ))}
               </div>
 
               {/* Details Page Placements */}
               <div className="mb-6">
                 <h4 className="font-medium text-sm mb-3 text-green-600">Article Details Page Placements</h4>
-                {ARTICLE_DISPLAY_LOCATIONS.filter(item => item.category === 'details').map((item) => (
-                  <FormField
-                    key={item.value}
-                    control={form.control}
-                    name="displayPlacements"
-                    render={({ field }) => {
-                      return (
-                        <FormItem
-                          key={item.value}
-                          className="flex flex-row items-start space-x-3 space-y-0 mb-3"
-                        >
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(item.value)}
-                              onCheckedChange={(checked) => {
-                                const newValue = checked
-                                  ? [...(field.value || []), item.value]
-                                  : field.value?.filter((value) => value !== item.value);
-                                field.onChange(newValue);
-                                setSelectedDisplayPlacements(newValue || []);
-                              }}
-                            />
-                          </FormControl>
-                          <div>
-                            <FormLabel className="font-normal">
-                              {item.label}
-                            </FormLabel>
-                            <p className="text-xs text-gray-500 mt-1">{item.description}</p>
-                          </div>
-                        </FormItem>
-                      );
-                    }}
-                  />
-                ))}
+                                 {detailsPagePlacements.map((placement) => (
+                   <FormField
+                     key={placement.placement}
+                     control={form.control}
+                     name="unifiedPlacements"
+                     render={({ field }) => {
+                       return (
+                         <FormItem
+                           key={placement.placement}
+                           className="flex flex-row items-start space-x-3 space-y-0 mb-3"
+                         >
+                           <FormControl>
+                             <Checkbox
+                               checked={field.value?.includes(placement.placement)}
+                               onCheckedChange={(checked) => {
+                                 const newValue = checked
+                                   ? [...(field.value || []), placement.placement]
+                                   : field.value?.filter((value) => value !== placement.placement);
+                                 field.onChange(newValue);
+                                 setSelectedUnifiedPlacements((newValue as UnifiedPlacement[]) || []);
+                               }}
+                             />
+                           </FormControl>
+                           <div>
+                             <FormLabel className="font-normal">
+                               {placement.placement.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                             </FormLabel>
+                             <p className="text-xs text-gray-500 mt-1">{placement.description}</p>
+                             {placement.size && (
+                               <p className="text-xs text-gray-500 mt-1">Size: {getPlacementSizeBadge(placement.size)}</p>
+                             )}
+                           </div>
+                         </FormItem>
+                       );
+                     }}
+                   />
+                 ))}
+              </div>
+
+              {/* Header/Footer Placements */}
+              <div className="mb-6">
+                <h4 className="font-medium text-sm mb-3 text-purple-600">Header/Footer Placements</h4>
+                                 {headerFooterPlacements.map((placement) => (
+                   <FormField
+                     key={placement.placement}
+                     control={form.control}
+                     name="unifiedPlacements"
+                     render={({ field }) => {
+                       return (
+                         <FormItem
+                           key={placement.placement}
+                           className="flex flex-row items-start space-x-3 space-y-0 mb-3"
+                         >
+                           <FormControl>
+                             <Checkbox
+                               checked={field.value?.includes(placement.placement)}
+                               onCheckedChange={(checked) => {
+                                 const newValue = checked
+                                   ? [...(field.value || []), placement.placement]
+                                   : field.value?.filter((value) => value !== placement.placement);
+                                 field.onChange(newValue);
+                                 setSelectedUnifiedPlacements((newValue as UnifiedPlacement[]) || []);
+                               }}
+                             />
+                           </FormControl>
+                           <div>
+                             <FormLabel className="font-normal">
+                               {placement.placement.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                             </FormLabel>
+                             <p className="text-xs text-gray-500 mt-1">{placement.description}</p>
+                             {placement.size && (
+                               <p className="text-xs text-gray-500 mt-1">Size: {getPlacementSizeBadge(placement.size)}</p>
+                             )}
+                           </div>
+                         </FormItem>
+                       );
+                     }}
+                   />
+                 ))}
+              </div>
+
+              {/* Sidebar Placements */}
+              <div className="mb-6">
+                <h4 className="font-medium text-sm mb-3 text-indigo-600">Sidebar Placements</h4>
+                                 {sidebarPlacements.map((placement) => (
+                   <FormField
+                     key={placement.placement}
+                     control={form.control}
+                     name="unifiedPlacements"
+                     render={({ field }) => {
+                       return (
+                         <FormItem
+                           key={placement.placement}
+                           className="flex flex-row items-start space-x-3 space-y-0 mb-3"
+                         >
+                           <FormControl>
+                             <Checkbox
+                               checked={field.value?.includes(placement.placement)}
+                               onCheckedChange={(checked) => {
+                                 const newValue = checked
+                                   ? [...(field.value || []), placement.placement]
+                                   : field.value?.filter((value) => value !== placement.placement);
+                                 field.onChange(newValue);
+                                 setSelectedUnifiedPlacements((newValue as UnifiedPlacement[]) || []);
+                               }}
+                             />
+                           </FormControl>
+                           <div>
+                             <FormLabel className="font-normal">
+                               {placement.placement.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                             </FormLabel>
+                             <p className="text-xs text-gray-500 mt-1">{placement.description}</p>
+                             {placement.size && (
+                               <p className="text-xs text-gray-500 mt-1">Size: {getPlacementSizeBadge(placement.size)}</p>
+                             )}
+                           </div>
+                         </FormItem>
+                       );
+                     }}
+                   />
+                 ))}
               </div>
               <FormMessage />
             </FormItem>
@@ -626,9 +913,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="metaTitle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Meta Title</FormLabel>
-                    <FormControl><Input placeholder="Custom meta title for this article" {...field} /></FormControl>
-                    <FormDescription>Max 70 characters. If blank, article title is used.</FormDescription>
+                    <FormLabel className="text-black">Meta Title</FormLabel>
+                    <FormControl><Input placeholder="Custom meta title for this article" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Custom meta title for search engines (overrides default).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -638,9 +927,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="metaDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Meta Description</FormLabel>
-                    <FormControl><Textarea placeholder="Custom meta description for this article" {...field} rows={3}/></FormControl>
-                    <FormDescription>Max 160 characters. If blank, article excerpt is used.</FormDescription>
+                    <FormLabel className="text-black">Meta Description</FormLabel>
+                    <FormControl><Textarea placeholder="Custom meta description for this article" {...field} rows={3} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"/></FormControl>
+                    <FormDescription className="text-black">
+                      Custom meta description for search engines (overrides default).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -650,9 +941,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="metaKeywords"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Meta Keywords (comma-separated)</FormLabel>
-                    <FormControl><Input placeholder="keywordA, keywordB, keywordC" {...field} /></FormControl>
-                     <FormDescription>Specific keywords for this article.</FormDescription>
+                    <FormLabel className="text-black">Meta Keywords</FormLabel>
+                    <FormControl><Input placeholder="keywordA, keywordB, keywordC" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Comma-separated keywords for this article.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -662,9 +955,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="ogTitle"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Open Graph Title</FormLabel>
-                    <FormControl><Input placeholder="Custom OG title for social sharing" {...field} /></FormControl>
-                    <FormDescription>If blank, meta title or article title is used.</FormDescription>
+                    <FormLabel className="text-black">Open Graph Title</FormLabel>
+                    <FormControl><Input placeholder="Custom OG title for social sharing" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Custom title for social media sharing (overrides meta title).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -674,9 +969,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="ogDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Open Graph Description</FormLabel>
-                    <FormControl><Textarea placeholder="Custom OG description for social sharing" {...field} rows={3}/></FormControl>
-                    <FormDescription>If blank, meta description or excerpt is used.</FormDescription>
+                    <FormLabel className="text-black">Open Graph Description</FormLabel>
+                    <FormControl><Textarea placeholder="Custom OG description for social sharing" {...field} rows={3} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"/></FormControl>
+                    <FormDescription className="text-black">
+                      Custom description for social media sharing (overrides meta description).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -686,9 +983,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="ogImage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Open Graph Image URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://example.com/custom-og-image.jpg" {...field} /></FormControl>
-                    <FormDescription>If blank, article's main image is used.</FormDescription>
+                    <FormLabel className="text-black">Open Graph Image</FormLabel>
+                    <FormControl><Input type="url" placeholder="https://example.com/custom-og-image.jpg" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Custom image for social media sharing (overrides article image).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -698,9 +997,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="canonicalUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Canonical URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://example.com/original-article-url" {...field} /></FormControl>
-                    <FormDescription>If this article is a reprint or syndicated, specify the original URL.</FormDescription>
+                    <FormLabel className="text-black">Canonical URL</FormLabel>
+                    <FormControl><Input type="url" placeholder="https://example.com/original-article-url" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Original URL if this is a republished article.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -722,9 +1023,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="articleYoutubeUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1"><Youtube className="h-4 w-4"/>YouTube URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://youtube.com/watch?v=relevantvideo" {...field} /></FormControl>
-                    <FormDescription>A YouTube link specifically for this article.</FormDescription>
+                    <FormLabel className="text-black">YouTube URL</FormLabel>
+                    <FormControl><Input type="url" placeholder="https://youtube.com/watch?v=relevantvideo" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Related YouTube video URL for this article.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -734,9 +1037,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="articleFacebookUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1"><Facebook className="h-4 w-4"/>Facebook Post/Page URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://facebook.com/relevantpost" {...field} /></FormControl>
-                    <FormDescription>A Facebook link specifically for this article.</FormDescription>
+                    <FormLabel className="text-black">Facebook URL</FormLabel>
+                    <FormControl><Input type="url" placeholder="https://facebook.com/relevantpost" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Related Facebook post URL for this article.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -746,9 +1051,11 @@ export default function ArticleForm({ article, onSubmit, onCancel, isSubmitting 
                 name="articleMoreLinksUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center gap-1"><LinkIcon className="h-4 w-4"/>More Related Links URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://example.com/related-resource" {...field} /></FormControl>
-                    <FormDescription>Another relevant link for this article.</FormDescription>
+                    <FormLabel className="text-black">More Links URL</FormLabel>
+                    <FormControl><Input type="url" placeholder="https://example.com/related-resource" {...field} className="border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200" /></FormControl>
+                    <FormDescription className="text-black">
+                      Additional resource or related content URL.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

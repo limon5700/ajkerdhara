@@ -3,13 +3,13 @@
 
 import type { NewsArticle } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { ResponsiveImage } from "@/components/ui/optimized-image";
 import { Badge } from "@/components/ui/badge";
 import { CategoryBadge } from "@/components/ui/category-badge";
-import { CalendarDays, ArrowRight } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { bn } from 'date-fns/locale'; // Import Bengali locale
+
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,13 +20,13 @@ interface NewsCardProps {
 }
 
 export default function NewsCard({ article }: NewsCardProps) {
-  const { getUIText, isClient, language: currentLocale } = useAppContext();
+  const { getUIText, isClient } = useAppContext();
 
   if (!isClient) {
     let formattedDateSsr = "N/A";
     try {
       if (article.publishedDate) {
-        formattedDateSsr = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true, locale: currentLocale === 'bn' ? bn : undefined });
+        formattedDateSsr = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true });
       }
     } catch (e) {
       // If parsing fails, fallback to simple display or N/A
@@ -65,13 +65,7 @@ export default function NewsCard({ article }: NewsCardProps) {
         <CardContent className="flex-grow">
           <CardDescription className="text-sm text-gray-600 line-clamp-3">{article.excerpt || ''}</CardDescription> {/* Added line-clamp-3 for consistency */}
         </CardContent>
-        <CardFooter>
-          <Button asChild variant="default" size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled>
-            <span className="flex items-center">
-              Loading... <ArrowRight className="ml-2 h-4 w-4" />
-            </span>
-          </Button>
-        </CardFooter>
+
       </Card>
     );
   }
@@ -82,7 +76,7 @@ export default function NewsCard({ article }: NewsCardProps) {
   let relativeDate = "N/A";
   try {
     if (article.publishedDate) {
-      relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true, locale: currentLocale === 'bn' ? bn : undefined });
+              relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true });
     }
   } catch (e) {
     console.warn("Error formatting relative date in NewsCard:", e);
@@ -95,11 +89,11 @@ export default function NewsCard({ article }: NewsCardProps) {
       }
   }
   
-  const seeMoreText = getUIText("seeMore");
+
 
   return (
     <Link href={`/article/${article.id}`} className="block">
-      <div className="flex flex-col h-full overflow-hidden bg-white hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+      <div className="flex flex-col h-full overflow-hidden bg-white">
         <div className="relative w-full aspect-video">
           <Image // Changed from ResponsiveImage to Image
             src={article.imageUrl || "/placeholder-image.svg"}
@@ -119,17 +113,9 @@ export default function NewsCard({ article }: NewsCardProps) {
               <span>{relativeDate}</span>
             </div>
           </div>
-          <h3 className="text-lg font-bold leading-tight mb-2 text-black line-clamp-2 hover:text-yellow-600 transition-colors">{displayTitle}</h3>
+          <h3 className="text-lg font-bold leading-tight mb-2 text-black line-clamp-2 hover:underline cursor-pointer">{displayTitle}</h3>
           <p className="text-sm text-gray-600 line-clamp-3 mb-4">{displayExcerpt}</p>
-          <Button
-            variant="default"
-            size="sm"
-            className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-transform duration-200 hover:scale-105"
-            aria-label={`${seeMoreText} ${displayTitle}`}
-          >
-            {seeMoreText}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+
         </div>
       </div>
     </Link>

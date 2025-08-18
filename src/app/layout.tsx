@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${title}`, 
     },
     description: description,
-    keywords: seoSettings?.metaKeywords || ['news', 'bangla news', 'ai news', 'latest news', 'technology', 'sports'],
+    keywords: seoSettings?.metaKeywords || ['news', 'ai news', 'latest news', 'technology', 'sports'],
           authors: [{ name: 'Clypio Team', url: siteUrl }],
       creator: 'Clypio Team',
       publisher: 'Clypio',
@@ -54,7 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
           alt: title,
         },
       ],
-      locale: seoSettings?.ogLocale || 'bn_BD',
+      locale: seoSettings?.ogLocale || 'en_US',
       type: (seoSettings?.ogType as "website" | "article" | "book" | "profile" | "music.song" | "music.album" | "music.playlist" | "music.radio_station" | "video.movie" | "video.episode" | "video.tv_show" | "video.other") || 'website',
     },
     twitter: {
@@ -97,7 +97,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="bn" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <body className={`antialiased font-sans bg-background text-foreground`} suppressHydrationWarning>
         <AppProvider>
           {children}

@@ -47,6 +47,21 @@ function mapMongoDocumentToGadget(doc: any): Gadget {
     isActive: doc.isActive,
     order: doc.order,
     createdAt: doc.createdAt instanceof Date ? doc.createdAt.toISOString() : doc.createdAt,
+    // New unified placement system
+    unifiedPlacement: doc.unifiedPlacement,
+    placementSize: doc.placementSize,
+    targetArticleId: doc.targetArticleId,
+    targetCategory: doc.targetCategory,
+    // New advanced fields
+    adType: doc.adType || 'html',
+    autoInjectFrequency: doc.autoInjectFrequency,
+    injectPosition: doc.injectPosition || 'between',
+    targetPages: doc.targetPages || [],
+    deviceTargeting: doc.deviceTargeting || 'all',
+    timeTargeting: doc.timeTargeting || { daysOfWeek: [] },
+    clickTracking: doc.clickTracking || false,
+    impressionTracking: doc.impressionTracking || false,
+    priority: doc.priority || 'medium',
   };
 }
 
@@ -136,29 +151,7 @@ export async function getAllNewsArticles(authorId?: string): Promise<NewsArticle
     // Removed seeding logic to ensure no mock data is ever inserted
     // const count = await articlesCollection.countDocuments();
     // if (count === 0 && initialSampleNewsArticles.length > 0) {
-    //     console.log("Seeding initial news articles...");
-    //     const articlesToSeed = initialSampleNewsArticles.map(article => {
-    //         const { id, ...restOfArticle } = article; // Exclude frontend 'id'
-    //         return {
-    //             ...restOfArticle,
-    //             publishedDate: new Date(article.publishedDate),
-    //             inlineAdSnippets: article.inlineAdSnippets || [],
-    //             metaTitle: article.metaTitle || '',
-    //             metaDescription: article.metaDescription || '',
-    //             metaKeywords: article.metaKeywords || [],
-    //             ogTitle: article.ogTitle || '',
-    //             ogDescription: article.ogDescription || '',
-    //             ogImage: article.ogImage || '',
-    //             canonicalUrl: article.canonicalUrl || '',
-    //             articleYoutubeUrl: article.articleYoutubeUrl || '',
-    //             articleFacebookUrl: article.articleFacebookUrl || '',
-    //             articleMoreLinksUrl: article.articleMoreLinksUrl || '',
-    //             _id: new ObjectId(),
-    //         };
-    //     });
-    //     await articlesCollection.insertMany(articlesToSeed);
-    //     console.log(`${articlesToSeed.length} articles seeded.`);
-    // }
+
 
     const articlesCursor = articlesCollection.find(query, {
       projection: {
@@ -435,6 +428,22 @@ export async function deleteGadget(id: string): Promise<boolean> {
   } catch (error) {
     console.error("Error deleting gadget:", error);
     return false;
+  }
+}
+
+export async function getGadgetById(id: string): Promise<Gadget | null> {
+  if (!ObjectId.isValid(id)) {
+    console.error("Invalid ID for gadget fetch:", id);
+    return null;
+  }
+  try {
+    const { db } = await connectToDatabase();
+    const objectId = new ObjectId(id);
+    const gadgetDoc = await db.collection('advertisements').findOne({ _id: objectId });
+    return gadgetDoc ? mapMongoDocumentToGadget(gadgetDoc) : null;
+  } catch (error) {
+    console.error("Error fetching gadget by ID:", error);
+    return null;
   }
 }
 

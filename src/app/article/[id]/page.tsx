@@ -25,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAppContext } from '@/context/AppContext';
 import RelatedPosts from '@/components/news/RelatedPosts';
 import SidebarArticleCard from '@/components/news/SidebarArticleCard'; // Ensure SidebarArticleCard is imported
+import AlternatingPostsAndAds from '@/components/news/AlternatingPostsAndAds';
 
 
 const DynamicAdDisplay = dynamic(() => import('@/components/ads/AdDisplay'), {
@@ -82,7 +83,10 @@ const renderContentWithAds = (
                             content: snippet,
                             isActive: true,
                             section: 'article-inline', 
-                            id: `inline-specific-${articleId}-${snippetIndex}` 
+                            id: `inline-specific-${articleId}-${snippetIndex}`,
+                            adType: 'html',
+                            unifiedPlacement: 'article-inline',
+                            placementSize: 'medium'
                         }}
                         className="my-4 inline-ad-widget"
                     />
@@ -120,9 +124,22 @@ export default function ArticlePage() {
 
   const [article, setArticle] = useState<NewsArticle | null>(null);
   const [activeGadgets, setActiveGadgets] = useState<Record<LayoutSection, Gadget[]>>({
-      'homepage-top': [], 'homepage-content-bottom': [], 'homepage-article-interstitial': [],
-      'article-top': [], 'article-bottom': [], 'sidebar-left': [], 'sidebar-right': [],
-      'footer': [], 'article-inline': [], 'header-logo-area': [], 'below-header': [],
+    'homepage-top': [], 
+    'homepage-content-bottom': [], 
+    'homepage-article-interstitial': [],
+    'homepage-latest-posts': [], 
+    'homepage-more-headlines': [], 
+    'article-top': [], 
+    'article-bottom': [], 
+    'article-related': [],
+    'sidebar-left': [], 
+    'sidebar-right': [], 
+    'footer': [], 
+    'article-inline': [], 
+    'header-logo-area': [], 
+    'below-header': [],
+    'article-details-page': [], 
+    'article-details-sidebar': []
   });
   const [globalSeoSettings, setGlobalSeoSettings] = useState<SeoSettings | null>(null);
   const [relatedArticles, setRelatedArticles] = useState<NewsArticle[]>([]);
@@ -204,8 +221,9 @@ export default function ArticlePage() {
         }
 
         const sectionsToFetch: LayoutSection[] = [
-          'article-top', 'article-bottom', 'sidebar-left', 'sidebar-right',
+          'article-top', 'article-bottom', 'article-related', 'sidebar-left', 'sidebar-right',
           'footer', 'article-inline', 'header-logo-area', 'below-header', 
+          'article-details-page', 'article-details-sidebar'
         ];
         const gadgetPromises = sectionsToFetch.map(section => getActiveGadgetsBySection(section));
         const gadgetResults = await Promise.all(gadgetPromises);
@@ -573,31 +591,38 @@ export default function ArticlePage() {
                      {renderGadgetsForSection('sidebar-right')}
                    </div>
                
-                   {/* Sidebar Articles Section */}
+                   {/* Sidebar Articles Section with Alternating Ads */}
                    {isLoading ? (
                      <DynamicRelatedPosts articles={[]} currentArticleId={id} />
                    ) : sidebarArticles.length > 0 ? (
                      <div className="space-y-4">
-                       <h3 className="text-lg font-bold text-black mb-4 pb-2">Sidebar Articles</h3>
-                       {sidebarArticles.slice(0, 4).map((sidebarArticle) => (
-                         <SidebarArticleCard key={`sidebar-${sidebarArticle.id}`} article={sidebarArticle} />
-                       ))}
+                       <AlternatingPostsAndAds
+                         articles={sidebarArticles}
+                         ads={activeGadgets['article-details-sidebar'] || []}
+                         title="Sidebar Articles"
+                         layout="list"
+                         maxItems={6}
+                         className=""
+                         section="article-details-sidebar"
+                       />
                      </div>
                    ) : null}
                </div>
            </div>
          </main>
          
-         {/* Related Posts Section - Full Width */}
+         {/* Related Posts Section with Alternating Ads */}
          {relatedArticles.length > 0 && (
            <div className="mt-12 py-12">
              <div className="container mx-auto px-4">
-               <h2 className="text-2xl font-bold text-black mb-6 pb-2">Related Articles</h2>
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                 {relatedArticles.slice(0, 8).map((relatedArticle) => (
-                   <SidebarArticleCard key={`related-${relatedArticle.id}`} article={relatedArticle} />
-                 ))}
-               </div>
+               <AlternatingPostsAndAds
+                 articles={relatedArticles}
+                 ads={activeGadgets['article-details-page'] || []}
+                 title="Related Articles"
+                 layout="grid"
+                 maxItems={8}
+                 section="article-details-page"
+               />
              </div>
            </div>
          )}
