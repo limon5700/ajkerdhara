@@ -10,7 +10,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "setup-db": "node scripts/setup-database.js"
+    "setup-db": "node scripts/setup-database.js",
+    "setup-admin": "tsx src/scripts/setup-admin.ts",
+    "quick-setup": "node scripts/quick-setup.js"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",

@@ -28,25 +28,31 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = await request.cookies.get(SESSION_COOKIE_NAME);
     const sessionCookieValue = sessionCookie?.value;
     const serverAdminUsername = process.env.ADMIN_USERNAME;
-
-
+    const mongodbUri = process.env.MONGODB_URI;
 
     let reasonForRedirect = '';
 
     if (!sessionCookieValue) {
       reasonForRedirect = `Session cookie '${SESSION_COOKIE_NAME}' not found.`;
-    } else if (sessionCookieValue !== SUPERADMIN_COOKIE_VALUE) {
-      reasonForRedirect = `Session cookie value '${sessionCookieValue}' is not the expected SUPERADMIN_COOKIE_VALUE ('${SUPERADMIN_COOKIE_VALUE}').`;
-    } else if (!serverAdminUsername) {
-      // This case is critical: SuperAdmin cookie is present, but server doesn't know its own admin username.
-      reasonForRedirect = `CRITICAL SERVER MISCONFIGURATION: '${SUPERADMIN_COOKIE_VALUE}' found, but ADMIN_USERNAME is NOT SET on server. Session is invalid.`;
-      console.error(`[Middleware] ${reasonForRedirect}`);
-      // In this specific critical case, also ensure the problematic cookie is cleared if possible, though middleware can't directly call `cookies().delete()` on the response here easily.
-      // The main action is to redirect.
+    } else if (sessionCookieValue === SUPERADMIN_COOKIE_VALUE) {
+      // Check SuperAdmin session
+      if (!serverAdminUsername) {
+        reasonForRedirect = `CRITICAL SERVER MISCONFIGURATION: '${SUPERADMIN_COOKIE_VALUE}' found, but ADMIN_USERNAME is NOT SET on server. Session is invalid.`;
+        console.error(`[Middleware] ${reasonForRedirect}`);
+      }
+    } else if (sessionCookieValue.startsWith('user_session:')) {
+      // Check database user session
+      if (!mongodbUri) {
+        reasonForRedirect = `Database user session found, but MONGODB_URI is NOT SET on server. Cannot validate session.`;
+        console.error(`[Middleware] ${reasonForRedirect}`);
+      }
+      // For database users, we'll let the layout handle the validation
+      // since we can't easily validate the user ID here without database access
+    } else {
+      reasonForRedirect = `Invalid session cookie format: '${sessionCookieValue}'`;
     }
 
     if (reasonForRedirect) {
-  
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirectedFrom', pathname);
       if (reasonForRedirect.includes('CRITICAL SERVER MISCONFIGURATION')) {
@@ -57,8 +63,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    // If all checks pass for SUPERADMIN_COOKIE_VALUE
-
+    // If all checks pass
     return NextResponse.next();
   }
 

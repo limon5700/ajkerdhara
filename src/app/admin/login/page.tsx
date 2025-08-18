@@ -128,14 +128,7 @@ export default function LoginPage() {
             </Alert>
           )}
           
-          {serverConfigError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Server Configuration Error</AlertTitle>
-              <AlertDescription>{serverConfigError}</AlertDescription>
-            </Alert>
-          )}
-
+        
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="username" className="text-black">Username</Label>
@@ -180,26 +173,7 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-          <div className="mt-6">
-            <Button variant="outline" className="w-full" onClick={handleCheckServerVars} disabled={isCheckingVars}>
-                {isCheckingVars ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Check Server Configuration
-            </Button>
-            {serverVars && (
-                <Card className="mt-4 text-sm">
-                    <CardHeader><CardTitle className="text-base">Server Configuration Status:</CardTitle></CardHeader>
-                    <CardContent className="space-y-1">
-                        <p><strong>MONGODB_URI is set:</strong> {serverVars.MONGODB_URI_IS_SET ? "Yes" : <span className="text-destructive font-semibold">No (Required for general app stability)</span>}</p>
-                        <p><strong>ADMIN_USERNAME is set:</strong> {serverVars.ADMIN_USERNAME_IS_SET ? "Yes" : <span className="text-destructive font-semibold">No (CRITICAL for .env admin login)</span>}</p>
-                        <p><strong>ADMIN_USERNAME value:</strong> {String(serverVars.ADMIN_USERNAME_VALUE)}</p>
-                        <p><strong>ADMIN_PASSWORD is set:</strong> {serverVars.ADMIN_PASSWORD_IS_SET ? "Yes" : <span className="text-destructive font-semibold">No (CRITICAL for .env admin login)</span>}</p>
-                        <p><strong>GEMINI_API_KEY is set:</strong> {serverVars.GEMINI_API_KEY_IS_SET ? "Yes" : "No (Optional for AI features)"}</p>
-                        <p><strong>NODE_ENV:</strong> {String(serverVars.NODE_ENV)}</p>
-                        <p><strong>VERCEL_ENV:</strong> {String(serverVars.VERCEL_ENV)}</p>
-                    </CardContent>
-                </Card>
-            )}
-          </div>
+          
         </CardContent>
         <CardFooter className="text-center text-xs text-black">
             <p>Protected by secure authentication. Only authorized users can access.</p>

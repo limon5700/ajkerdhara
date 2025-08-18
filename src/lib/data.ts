@@ -641,6 +641,63 @@ export async function getUserByUsername(username: string): Promise<User | null> 
   }
 }
 
+export async function createSuperAdmin(username: string, password: string): Promise<User | null> {
+  try {
+    const { db } = await connectToDatabase();
+    
+    // Check if super admin already exists
+    const existingSuperAdmin = await db.collection('users').findOne({ 
+      roles: { $in: ['SuperAdmin'] } 
+    });
+    
+    if (existingSuperAdmin) {
+      console.log("SuperAdmin already exists in database");
+      return mapMongoDocumentToUser(existingSuperAdmin);
+    }
+
+    // Create SuperAdmin role if it doesn't exist
+    let superAdminRole = await db.collection('roles').findOne({ name: 'SuperAdmin' });
+    if (!superAdminRole) {
+      const newRole = {
+        name: 'SuperAdmin',
+        description: 'Super Administrator with all permissions',
+        permissions: availablePermissions,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        _id: new ObjectId(),
+      };
+      const roleResult = await db.collection('roles').insertOne(newRole);
+      superAdminRole = { ...newRole, _id: roleResult.insertedId };
+    }
+
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 12); // Higher salt rounds for super admin
+    
+    // Create super admin user
+    const superAdminUser = {
+      username: username,
+      email: `${username}@admin.local`, // Default email
+      passwordHash: passwordHash,
+      roles: [superAdminRole._id.toHexString()],
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      _id: new ObjectId(),
+    };
+
+    const result = await db.collection('users').insertOne(superAdminUser);
+    if (result.acknowledged && superAdminUser._id) {
+      const insertedDoc = await db.collection('users').findOne({ _id: superAdminUser._id });
+      console.log("SuperAdmin created successfully in database");
+      return mapMongoDocumentToUser(insertedDoc);
+    }
+    return null;
+  } catch (error) {
+    console.error("Error creating SuperAdmin:", error);
+    throw error;
+  }
+}
+
 export async function addUser(userData: CreateUserData): Promise<User | null> {
   if (!userData.password) {
     console.error("Password is required to create a new user.");

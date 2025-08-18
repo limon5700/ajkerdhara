@@ -34,14 +34,8 @@ async function checkLoginRequiredEnvVars(): Promise<{ error?: string }> {
 
 
 export async function loginAction(formData: LoginFormData): Promise<{ success: boolean; error?: string; redirectPath?: string }> {
-  console.log("loginAction: Invoked. ABOUT TO CHECK LOGIN ENV VARS.");
-  const envCheckError = await checkLoginRequiredEnvVars();
-  if (envCheckError.error) {
-    // If critical .env admin credentials are not set on the server, fail fast.
-    console.error("loginAction: Failing due to missing server-side admin credentials as per checkLoginRequiredEnvVars.");
-    return { success: false, error: envCheckError.error };
-  }
-
+  console.log("loginAction: Invoked. Checking database users first, then environment variables as fallback.");
+  
   const { username, password } = formData;
   const currentRuntimeAdminUsername = process.env.ADMIN_USERNAME;
   const currentRuntimeAdminPassword = process.env.ADMIN_PASSWORD;
@@ -58,27 +52,7 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
   try {
     const cookieStore = await nextCookies();
 
-    // 1. Check .env SuperAdmin credentials
-    if (username === currentRuntimeAdminUsername && password === currentRuntimeAdminPassword) {
-      console.log(`loginAction: Admin login via .env credentials SUCCESSFUL for username: ${currentRuntimeAdminUsername}. Setting SUPERADMIN_COOKIE_VALUE.`);
-      await cookieStore.set(SESSION_COOKIE_NAME, SUPERADMIN_COOKIE_VALUE, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days for superadmin
-      });
-      console.log(`loginAction: Cookie '${SESSION_COOKIE_NAME}' set to '${SUPERADMIN_COOKIE_VALUE}'.`);
-      console.log("loginAction: Attempting to log SUPERADMIN_ENV login activity.");
-      await addActivityLogEntry({ userId: 'SUPERADMIN_ENV', username: currentRuntimeAdminUsername!, action: 'login_superadmin_env' });
-      console.log("loginAction: About to redirect to /admin/dashboard for SuperAdmin.");
-      redirect('/admin/dashboard'); // This will throw NEXT_REDIRECT
-    } else if (username === currentRuntimeAdminUsername) {
-      console.log("loginAction: Admin login via .env credentials FAILED - password mismatch for username:", currentRuntimeAdminUsername);
-      // Fall through to check database users if MONGODB_URI is set
-    }
-
-    // 2. Check database users (only if MONGODB_URI is available)
+    // 1. Check database users first (if MONGODB_URI is available)
     if (process.env.MONGODB_URI) {
         const user: User | null = await getUserByUsername(username);
         if (user && user.passwordHash && (await bcrypt.compare(password, user.passwordHash))) {
@@ -105,7 +79,30 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
             console.log(`loginAction: Database user '${username}' not found.`);
         }
     } else {
-        console.warn("loginAction: MONGODB_URI not set, cannot check database users. Only .env admin login is possible.");
+        console.warn("loginAction: MONGODB_URI not set, cannot check database users.");
+    }
+
+    // 2. Check .env SuperAdmin credentials as fallback (only if they are set)
+    if (currentRuntimeAdminUsername && currentRuntimeAdminPassword) {
+        if (username === currentRuntimeAdminUsername && password === currentRuntimeAdminPassword) {
+            console.log(`loginAction: Admin login via .env credentials SUCCESSFUL for username: ${currentRuntimeAdminUsername}. Setting SUPERADMIN_COOKIE_VALUE.`);
+            await cookieStore.set(SESSION_COOKIE_NAME, SUPERADMIN_COOKIE_VALUE, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                path: '/',
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 30, // 30 days for superadmin
+            });
+            console.log(`loginAction: Cookie '${SESSION_COOKIE_NAME}' set to '${SUPERADMIN_COOKIE_VALUE}.`);
+            console.log("loginAction: Attempting to log SUPERADMIN_ENV login activity.");
+            await addActivityLogEntry({ userId: 'SUPERADMIN_ENV', username: currentRuntimeAdminUsername!, action: 'login_superadmin_env' });
+            console.log("loginAction: About to redirect to /admin/dashboard for SuperAdmin.");
+            redirect('/admin/dashboard'); // This will throw NEXT_REDIRECT
+        } else if (username === currentRuntimeAdminUsername) {
+            console.log("loginAction: Admin login via .env credentials FAILED - password mismatch for username:", currentRuntimeAdminUsername);
+        }
+    } else {
+        console.log("loginAction: .env admin credentials not set, skipping environment variable authentication.");
     }
 
     console.log(`loginAction: All login attempts FAILED for username: '${username}'.`);
