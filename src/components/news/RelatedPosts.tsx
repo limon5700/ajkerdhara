@@ -9,6 +9,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { bn } from 'date-fns/locale';
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
+import { defaultLanguage } from "@/lib/constants";
 
 interface RelatedPostsProps {
   articles: NewsArticle[];
@@ -16,7 +17,7 @@ interface RelatedPostsProps {
 }
 
 export default function RelatedPosts({ articles, currentArticleId }: RelatedPostsProps) {
-  const { isClient, language: currentLocale } = useAppContext();
+  const { isClient } = useAppContext();
 
   if (!articles || articles.length === 0) {
     return null;
@@ -42,7 +43,7 @@ export default function RelatedPosts({ articles, currentArticleId }: RelatedPost
             try {
               relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { 
                 addSuffix: true, 
-                locale: currentLocale === 'bn' ? bn : undefined 
+                locale: defaultLanguage === 'en' ? bn : undefined 
               });
             } catch (e) {
               try {

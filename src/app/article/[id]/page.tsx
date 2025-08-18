@@ -10,7 +10,7 @@ import { bn } from 'date-fns/locale'; // Import Bengali locale
 import { ArrowLeft, Loader2, Youtube, Facebook, Link as LinkIcon, CalendarDays } from 'lucide-react'; 
 
 import type { NewsArticle, Gadget, LayoutSection, SeoSettings, Category } from '@/lib/types';
-import { categories as allNewsCategories } from '@/lib/constants';
+import { categories as allNewsCategories, defaultLanguage } from '@/lib/constants';
 import { getArticleById, getActiveGadgetsBySection, getSeoSettings, getRelatedArticles } from '@/lib/data-optimized';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -119,7 +119,7 @@ export default function ArticlePage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { isClient, language: currentLocale, getUIText } = useAppContext();
+  const { isClient, getUIText } = useAppContext();
   const id = params.id as string;
 
   const [article, setArticle] = useState<NewsArticle | null>(null);
@@ -431,7 +431,7 @@ export default function ArticlePage() {
   let relativeDate = "N/A";
   if (isClient && article?.publishedDate) {
     try {
-      relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true, locale: currentLocale === 'bn' ? bn : undefined });
+      relativeDate = formatDistanceToNow(parseISO(article.publishedDate), { addSuffix: true, locale: defaultLanguage === 'bn' ? bn : undefined });
     } catch (e) {
       try {
         relativeDate = new Date(article.publishedDate).toLocaleDateString();

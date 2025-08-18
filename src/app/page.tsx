@@ -25,6 +25,9 @@ import AlternatingPostsAndAds from '@/components/news/AlternatingPostsAndAds';
 // or this page would need to be a Server Component if dynamic metadata from `getSeoSettings` is critical here.
 // Assuming `layout.tsx` provides sufficient default SEO.
 
+// Force dynamic rendering to avoid build-time data fetching issues
+export const dynamic = 'force-dynamic';
+
 export default function HomePage() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [activeGadgets, setActiveGadgets] = useState<Record<LayoutSection, Gadget[]>>({

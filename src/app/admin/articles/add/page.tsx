@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering to avoid build-time data collection issues
+export const dynamic = 'force-dynamic';
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ArticleForm, { type ArticleFormData } from "@/components/admin/ArticleForm";

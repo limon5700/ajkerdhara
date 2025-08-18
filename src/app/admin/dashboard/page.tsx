@@ -1,6 +1,9 @@
 
 "use client";
 
+// Force dynamic rendering to avoid build-time data collection issues
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useCallback } from "react";
 import { PlusCircle, Edit, Trash2, Loader2, BarChartBig, FileText, Zap, Users, CalendarClock, Eye, AlertTriangle, Activity } from "lucide-react";
 import { formatInTimeZone } from 'date-fns-tz';

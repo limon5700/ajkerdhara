@@ -1,5 +1,8 @@
 "use client";
 
+// Force dynamic rendering to avoid build-time data collection issues
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,7 +63,6 @@ export default function AdsManagementPage() {
       
       if (response.ok) {
         await fetchAds();
-        setShowForm(false);
       }
     } catch (error) {
       console.error('Error creating ad:', error);
@@ -78,7 +80,6 @@ export default function AdsManagementPage() {
       if (response.ok) {
         await fetchAds();
         setEditingAd(null);
-        setShowForm(false);
       }
     } catch (error) {
       console.error('Error updating ad:', error);
