@@ -18,55 +18,29 @@ export async function middleware(request: NextRequest) {
   // Allow requests to the login page itself, API routes, and static assets
   if (
     pathname.startsWith('/admin/login') ||
+    pathname.startsWith('/admin/setup') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.') // commonly for static files like .ico, .png
   ) {
-
     return NextResponse.next();
   }
 
-  // Protect all other /admin/* routes
+  // Protect all other /admin/* routes (but NOT login or setup)
   if (pathname.startsWith('/admin')) {
     const sessionCookie = await request.cookies.get(SESSION_COOKIE_NAME);
     const sessionCookieValue = sessionCookie?.value;
-    const serverAdminUsername = process.env.ADMIN_USERNAME;
-    const mongodbUri = process.env.MONGODB_URI;
 
-    let reasonForRedirect = '';
-
+    // If no session cookie, redirect to login
     if (!sessionCookieValue) {
-      reasonForRedirect = `Session cookie '${SESSION_COOKIE_NAME}' not found.`;
-    } else if (sessionCookieValue === SUPERADMIN_COOKIE_VALUE) {
-      // Check SuperAdmin session
-      if (!serverAdminUsername) {
-        reasonForRedirect = `CRITICAL SERVER MISCONFIGURATION: '${SUPERADMIN_COOKIE_VALUE}' found, but ADMIN_USERNAME is NOT SET on server. Session is invalid.`;
-        console.error(`[Middleware] ${reasonForRedirect}`);
-      }
-    } else if (sessionCookieValue.startsWith('user_session:')) {
-      // Check database user session
-      if (!mongodbUri) {
-        reasonForRedirect = `Database user session found, but MONGODB_URI is NOT SET on server. Cannot validate session.`;
-        console.error(`[Middleware] ${reasonForRedirect}`);
-      }
-      // For database users, we'll let the layout handle the validation
-      // since we can't easily validate the user ID here without database access
-    } else {
-      reasonForRedirect = `Invalid session cookie format: '${sessionCookieValue}'`;
-    }
-
-    if (reasonForRedirect) {
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirectedFrom', pathname);
-      if (reasonForRedirect.includes('CRITICAL SERVER MISCONFIGURATION')) {
-        loginUrl.searchParams.set('configError', encodeURIComponent('SuperAdmin session validation failed due to server misconfiguration.'));
-      } else {
-        loginUrl.searchParams.set('error', encodeURIComponent('Session invalid or expired. Please log in again.'));
-      }
+      loginUrl.searchParams.set('error', encodeURIComponent('Please log in to access this page.'));
       return NextResponse.redirect(loginUrl);
     }
 
-    // If all checks pass
+    // If session cookie exists, let the layout handle validation
+    // This prevents middleware from blocking valid sessions
     return NextResponse.next();
   }
 

@@ -35,6 +35,8 @@ async function checkLoginRequiredEnvVars(): Promise<{ error?: string }> {
 
 export async function loginAction(formData: LoginFormData): Promise<{ success: boolean; error?: string; redirectPath?: string }> {
   console.log("loginAction: Invoked. Checking database users first, then environment variables as fallback.");
+  console.log(`loginAction: Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`loginAction: Vercel URL: ${process.env.VERCEL_URL || 'NOT_SET'}`);
   
   const { username, password } = formData;
   const currentRuntimeAdminUsername = process.env.ADMIN_USERNAME;
@@ -42,6 +44,7 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
 
   console.log(`loginAction: Runtime process.env.ADMIN_USERNAME: '${currentRuntimeAdminUsername}'`);
   console.log(`loginAction: Runtime process.env.ADMIN_PASSWORD is ${currentRuntimeAdminPassword ? `set (length: ${currentRuntimeAdminPassword.length})` : "NOT SET"}`);
+  console.log(`loginAction: MONGODB_URI is ${process.env.MONGODB_URI ? 'SET' : 'NOT SET'}`);
   console.log(`loginAction: Attempting login for username: '${username}'`);
 
   if (!password) {
@@ -66,9 +69,8 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
-                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+                sameSite: 'lax', // Use 'lax' for Vercel compatibility
                 maxAge: 60 * 60 * 24 * 7, // 7 days for regular users
-                domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser set domain
             });
             console.log(`loginAction: Cookie for database user set. Value: ${sessionValue}.`);
             await addActivityLogEntry({ userId: user.id, username: user.username, action: 'login_db_user' });
@@ -91,9 +93,8 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
-                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+                sameSite: 'lax', // Use 'lax' for Vercel compatibility
                 maxAge: 60 * 60 * 24 * 30, // 30 days for superadmin
-                domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser set domain
             });
             console.log(`loginAction: Cookie '${SESSION_COOKIE_NAME}' set to '${SUPERADMIN_COOKIE_VALUE}.`);
             console.log("loginAction: Attempting to log SUPERADMIN_ENV login activity.");
