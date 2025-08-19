@@ -66,8 +66,9 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
-                sameSite: 'lax',
+                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
                 maxAge: 60 * 60 * 24 * 7, // 7 days for regular users
+                domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser set domain
             });
             console.log(`loginAction: Cookie for database user set. Value: ${sessionValue}.`);
             await addActivityLogEntry({ userId: user.id, username: user.username, action: 'login_db_user' });
@@ -90,8 +91,9 @@ export async function loginAction(formData: LoginFormData): Promise<{ success: b
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
                 path: '/',
-                sameSite: 'lax',
+                sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
                 maxAge: 60 * 60 * 24 * 30, // 30 days for superadmin
+                domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser set domain
             });
             console.log(`loginAction: Cookie '${SESSION_COOKIE_NAME}' set to '${SUPERADMIN_COOKIE_VALUE}.`);
             console.log("loginAction: Attempting to log SUPERADMIN_ENV login activity.");

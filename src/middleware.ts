@@ -9,7 +9,10 @@ export async function middleware(request: NextRequest) {
 
   // Log details for every request to /admin/*
   if (pathname.startsWith('/admin')) {
-    
+    console.log(`[Middleware] Admin request to: ${pathname}`);
+    console.log(`[Middleware] Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`[Middleware] MONGODB_URI set: ${!!process.env.MONGODB_URI}`);
+    console.log(`[Middleware] ADMIN_USERNAME set: ${!!process.env.ADMIN_USERNAME}`);
   }
 
   // Allow requests to the login page itself, API routes, and static assets
